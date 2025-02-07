@@ -75,3 +75,18 @@ src/
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Database Schema Update
+
+The project database schema has been updated to support new features, including the Quest Card integration. A new **tasks** table has been introduced to record and track quests. This table includes the following fields:
+- **id** (uuid, auto-generated): Unique identifier for each task.
+- **title** (text): The title of the quest.
+- **description** (text): A description of the quest.
+- **reward_points** (integer): Points awarded upon completion.
+- **frequency** (text): Accepts "daily", "weekly", or "one-off" to indicate how often the task repeats.
+- **status** (text): Accepts "assigned", "pending approval", "completed", or "rejected" to show the task's progress.
+- **assigned_child_id** (uuid): References the child who is assigned the task.
+- **created_by** (uuid): References the parent who created the task.
+- **created_at / updated_at** (timestamps): Track when the task was created and last updated.
+
+For detailed schema information, see [Docs/database_schema.md](Docs/database_schema.md).
