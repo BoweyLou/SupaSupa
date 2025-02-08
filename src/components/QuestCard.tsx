@@ -3,6 +3,7 @@
 // This component is based on the QuestCardFeature.md plan and will serve as the UI element for tasks in the dashboard.
 import React, { useState, useEffect } from 'react';
 import { Award, Zap } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export interface Quest {
   id: string;
@@ -17,11 +18,19 @@ export interface QuestCardProps {
   quest: Quest;
   userRole: 'parent' | 'child';
   // Callback when the task action is triggered
-  onComplete?: (questId: string) => void;
+  onComplete?: (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => void;
+  hideActions?: boolean;
 }
 
-const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete }) => {
+const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hideActions }) => {
   const [showCelebration, setShowCelebration] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState(quest.title);
+  const [editDescription, setEditDescription] = useState(quest.description);
+  const [editRewardPoints, setEditRewardPoints] = useState(quest.points.toString());
+  const [editFrequency, setEditFrequency] = useState(quest.frequency || 'daily');
+  const [editError, setEditError] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
   const handleComplete = () => {
     if (onComplete) onComplete(quest.id);
@@ -30,9 +39,72 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete }) =>
   };
 
   const handleApprove = () => {
-    if (onComplete) onComplete(quest.id);
+    if (onComplete) onComplete(quest.id, 'approve');
     setShowCelebration(true);
     setTimeout(() => setShowCelebration(false), 3000);
+  };
+
+  const handleReject = () => {
+    if (onComplete) onComplete(quest.id, 'assigned');
+  };
+
+  const handleOpenEditModal = () => {
+    setEditTitle(quest.title);
+    setEditDescription(quest.description);
+    setEditRewardPoints(quest.points.toString());
+    setEditFrequency(quest.frequency || 'daily');
+    setEditError('');
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setEditLoading(true);
+    const points = parseInt(editRewardPoints, 10);
+    if (isNaN(points)) {
+      setEditError('Reward points must be a valid number.');
+      setEditLoading(false);
+      return;
+    }
+    try {
+      const payload = {
+        title: editTitle,
+        description: editDescription,
+        reward_points: points,
+        frequency: editFrequency
+      };
+      const { error } = await supabase
+        .from('tasks')
+        .update(payload)
+        .eq('id', quest.id);
+      if (error) {
+        setEditError(error.message);
+      } else {
+        if (onComplete) onComplete(quest.id, 'edit');
+        setIsEditModalOpen(false);
+      }
+    } catch (err) {
+      console.error('Error updating quest:', err);
+      setEditError('An unexpected error occurred.');
+    }
+    setEditLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this quest?')) return;
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', quest.id);
+      if (error) {
+        console.error('Error deleting quest:', error);
+      } else {
+        if (onComplete) onComplete(quest.id, 'delete');
+      }
+    } catch (err) {
+      console.error('Error in deleting quest:', err);
+    }
   };
 
   return (
@@ -63,7 +135,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete }) =>
       {/* Status */}
       <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}><strong>Status:</strong> {quest.status}</p>
       {/* Role-based actions */}
-      {userRole === 'child' && (
+      {!hideActions && userRole === 'child' && quest.status === 'assigned' && (
         <button
           style={{
             fontFamily: 'Poppins, sans-serif',
@@ -77,10 +149,10 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete }) =>
           }}
           onClick={handleComplete}
         >
-          Complete Task
+          I did it
         </button>
       )}
-      {userRole === 'parent' && (
+      {!hideActions && userRole === 'parent' && quest.status === 'pending' && (
         <div>
           <button
             style={{
@@ -109,9 +181,26 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete }) =>
               cursor: 'pointer',
               marginLeft: '8px'
             }}
-            onClick={() => onComplete && onComplete(quest.id)}
+            onClick={handleReject}
           >
             Reject
+          </button>
+        </div>
+      )}
+      {/* New Parent Actions: Edit and Delete */}
+      {!hideActions && userRole === 'parent' && (
+        <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+          <button
+            style={{ padding: '8px 12px', backgroundColor: '#4CAF50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            onClick={handleOpenEditModal}
+          >
+            Edit
+          </button>
+          <button
+            style={{ padding: '8px 12px', backgroundColor: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            onClick={handleDelete}
+          >
+            Delete
           </button>
         </div>
       )}
@@ -131,6 +220,45 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete }) =>
           animation: 'fadeInOut 3s ease-in-out'
         }}>
           <span style={{ fontSize: '24px', color: '#f9c74f' }}>🎉 Quest Completed! 🎉</span>
+        </div>
+      )}
+      {/* Edit Modal for Parent */}
+      {isEditModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor:'rgba(0, 0, 0, 0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 50 }}>
+          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '90%', maxWidth: '500px' }}>
+            <h2>Edit Quest</h2>
+            {editError && <p style={{ color: 'red' }}>{editError}</p>}
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Title</label>
+                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Description</label>
+                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} required style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Reward Points</label>
+                <input type="number" value={editRewardPoints} onChange={(e) => setEditRewardPoints(e.target.value)} required style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Frequency</label>
+                <select value={editFrequency} onChange={(e) => setEditFrequency(e.target.value)} style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }}>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="one-off">One-off</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap:'10px' }}>
+                <button type="button" onClick={() => setIsEditModalOpen(false)} style={{ padding:'8px 12px', backgroundColor:'#ccc', border:'none', borderRadius:'4px', cursor:'pointer' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={editLoading} style={{ padding:'8px 12px', backgroundColor:'#4CAF50', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer' }}>
+                  {editLoading ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
       <style jsx>{`
