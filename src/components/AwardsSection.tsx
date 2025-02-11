@@ -11,12 +11,12 @@ import { supabase } from '@/lib/supabase';
 
 // Define interface for Award
 export interface Award {
-  award_id: string;
+  id: string;
   title: string;
   description: string;
-  cost_points: number;
-  freeze_out_period: number;
-  is_enabled: boolean;
+  points: number;
+  freeze_out_period?: number;
+  is_enabled?: boolean;
   image_url?: string;
   created_at?: string;
   updated_at?: string;
@@ -62,7 +62,7 @@ export default function AwardsSection({ childrenAccounts, onRedeemSuccess, hideH
   // Updated handler for redeeming an award for a specific child
   async function handleRedeem(award: Award, child: Child) {
     // Check if child has enough points
-    if (child.points < award.cost_points) {
+    if (child.points < award.points) {
       alert(`${child.name} does not have enough points to redeem this award.`);
       return;
     }
@@ -71,14 +71,14 @@ export default function AwardsSection({ childrenAccounts, onRedeemSuccess, hideH
     // For now, we are assuming the award is redeemable if it is enabled.
 
     // Confirm redemption action
-    const confirmRedeem = confirm(`Redeem ${award.title} for ${child.name} for ${award.cost_points} points?`);
+    const confirmRedeem = confirm(`Redeem ${award.title} for ${child.name} for ${award.points} points?`);
     if (!confirmRedeem) return;
 
     // Proceed to redeem: Insert a record into 'user_awards' and deduct points
     const redeemedAt = new Date().toISOString();
     const { error: insertError } = await supabase
       .from('user_awards')
-      .insert([{ user_id: child.id, award_id: award.award_id, redeemed_at: redeemedAt }]);
+      .insert([{ user_id: child.id, award_id: award.id, redeemed_at: redeemedAt }]);
     if (insertError) {
       console.error('Error redeeming award:', insertError);
       alert('Failed to redeem award. Please try again.');
@@ -86,7 +86,7 @@ export default function AwardsSection({ childrenAccounts, onRedeemSuccess, hideH
     }
 
     // Deduct the cost from the child's points
-    const newPoints = child.points - award.cost_points;
+    const newPoints = child.points - award.points;
     const { error: updateError } = await supabase
       .from('users')
       .update({ points: newPoints })
@@ -118,17 +118,17 @@ export default function AwardsSection({ childrenAccounts, onRedeemSuccess, hideH
         {expanded && (
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
             {awards.map(award => (
-              <div key={award.award_id} className="border p-4 rounded shadow">
+              <div key={award.id} className="border p-4 rounded shadow">
                 {award.image_url && (
                   <img src={award.image_url} alt={award.title} className="w-full h-40 object-cover mb-2 rounded" />
                 )}
                 <h4 className="text-lg font-bold">{award.title}</h4>
                 <p className="mb-2">{award.description}</p>
-                <p className="mb-2">Cost: {award.cost_points} points</p>
+                <p className="mb-2">Cost: {award.points} points</p>
                 <button
                   onClick={() => onRedeem(award, child)}
-                  disabled={!award.is_enabled || child.points < award.cost_points}
-                  className={`px-4 py-2 rounded text-white ${!award.is_enabled || child.points < award.cost_points ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                  disabled={!(award.is_enabled ?? true) || child.points < award.points}
+                  className={`px-4 py-2 rounded text-white ${!(award.is_enabled ?? true) || child.points < award.points ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                 >
                   Redeem
                 </button>

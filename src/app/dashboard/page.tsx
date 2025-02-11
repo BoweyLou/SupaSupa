@@ -289,6 +289,11 @@ export default function DashboardPage() {
       try {
         const data = await fetchParentTasks(dbUser.id);
         console.log('Raw tasks data fetched:', data);
+        if (!Array.isArray(data)) {
+          console.error('Expected tasks data as an array, got:', data);
+          setTasks([]);
+          return;
+        }
         const quests = data.map((task: any) => ({
           id: task.id,
           title: task.title,
@@ -593,60 +598,64 @@ export default function DashboardPage() {
       fetchTasks();
     };
 
-    // Fetch parent's family and child accounts once the current dbUser is available
+    // Update the family fetch effect for parent users
     useEffect(() => {
-        if (dbUser) {
-            const fetchFamilyAndChildren = async () => {
-                console.log('Fetching family for parent:', dbUser.id);
-                // Fetch family record where parent is the owner
-                const { data: familyData, error: familyError } = await supabase
-                    .from('families')
-                    .select('*')
-                    .eq('owner_id', dbUser.id)
-                    .single();
-                if (familyError) {
-                    console.error('Error fetching family:', familyError);
-                    setError('Failed to fetch family data');
-                    return;
-                }
-                console.log('Fetched family data:', familyData);
-                
-                if (familyData) {
-                    setFamilyId(familyData.family_id);
-                    console.log('Fetching children for family:', familyData.family_id);
-                    // Fetch child accounts associated with this family
-                    const { data: childrenData, error: childrenError } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('family_id', familyData.family_id)
-                        .eq('role', 'child');
-                    if (childrenError) {
-                        console.error('Error fetching children:', childrenError);
-                        setError('Failed to fetch children data');
-                    } else {
-                        console.log('Fetched children data:', childrenData);
-                        setChildren(childrenData);
-                    }
-                } else {
-                    console.log('No family found, creating new family...');
-                    // Create a new family if none exists
-                    const { data: newFamily, error: createFamilyError } = await supabase
-                        .from('families')
-                        .insert([{ owner_id: dbUser.id, name: `${dbUser.name}'s Family` }])
-                        .select()
-                        .single();
-                    
-                    if (createFamilyError) {
-                        console.error('Error creating family:', createFamilyError);
-                        setError('Failed to create family');
-                    } else {
-                        console.log('Created new family:', newFamily);
-                        setFamilyId(newFamily.family_id);
-                    }
-                }
-            };
-            fetchFamilyAndChildren();
-        }
+      if (dbUser) {
+        const fetchFamilyAndChildren = async () => {
+          console.log('Fetching family for parent:', dbUser.id);
+          // Fetch family record using maybeSingle() to avoid throwing if not found
+          const { data: familyData, error: familyError } = await supabase
+            .from('families')
+            .select('*')
+            .eq('owner_id', dbUser.id)
+            .maybeSingle();
+          if (familyError) {
+            console.error('Error fetching family:', familyError);
+            setError('Failed to fetch family data');
+            return;
+          }
+          if (familyData) {
+            console.log('Fetched family data:', familyData);
+            setFamilyId(familyData.family_id);
+            console.log('Fetching children for family:', familyData.family_id);
+            const { data: childrenData, error: childrenError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('family_id', familyData.family_id)
+              .eq('role', 'child');
+            if (childrenError) {
+              console.error('Error fetching children:', childrenError);
+              setError('Failed to fetch children data');
+            } else {
+              console.log('Fetched children data:', childrenData);
+              setChildren(childrenData);
+            }
+          } else {
+            console.log('No family found, creating new family...');
+            const { data: newFamily, error: createFamilyError } = await supabase
+              .from('families')
+              .insert([{ owner_id: dbUser.id, name: `${dbUser.name}'s Family` }])
+              .select()
+              .single();
+            if (createFamilyError) {
+              console.error('Error creating family:', createFamilyError);
+              setError('Failed to create family');
+            } else {
+              console.log('Created new family:', newFamily);
+              setFamilyId(newFamily.family_id);
+              // Update parent's record with the new family_id
+              const { error: updateUserError } = await supabase
+                .from('users')
+                .update({ family_id: newFamily.family_id })
+                .eq('id', dbUser.id);
+              if (updateUserError) {
+                console.error('Error updating parent record with family_id:', updateUserError);
+              }
+            }
+          }
+        };
+        fetchFamilyAndChildren();
+      }
     }, [dbUser]);
 
     // Update activeTab initialization for parent users
