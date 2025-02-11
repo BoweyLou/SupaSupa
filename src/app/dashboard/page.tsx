@@ -1,10 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import QuestCard, { Quest } from '@/components/QuestCard';
 import AddTask from '@/components/AddTask';
 import PointsDisplay from '@/components/PointsDisplay';
+import { fetchParentTasks, fetchChildTasks as repoFetchChildTasks, updateTaskStatus, fetchTask } from '@/repositories/tasksRepository';
+import AwardsSection from '@/components/AwardsSection';
+import AddAward from '@/components/AddAward';
+import DashboardSection from '@/components/DashboardSection';
+import { Compass, Award as AwardIcon } from 'lucide-react';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -24,15 +29,15 @@ interface DBUser {
   family_id: string;
   role: string;
   points: number;
+  user_metadata?: { [key: string]: any };
 }
 
 // ChildDashboardSection: A reusable component to display tasks for a child account
 function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tasks: Quest[]; onComplete: (questId: string) => void; }) {
   const [expanded, setExpanded] = useState(true);
   return (
-    <div className="mb-4 border p-2 rounded">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl">{child.name}</h3>
+    <div>
+      <div className="flex justify-end items-center w-full">
         <button onClick={() => setExpanded(!expanded)} className="text-blue-600">
           {expanded ? 'Hide Tasks' : `Show Tasks (${tasks.length})`}
         </button>
@@ -51,7 +56,7 @@ function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tas
         </ul>
       )}
       {expanded && tasks.length === 0 && (
-        <p className="mt-2 text-gray-500">No tasks for this child</p>
+        <p className="mt-2 text-gray-500">No tasks available</p>
       )}
     </div>
   );
@@ -85,6 +90,17 @@ export default function DashboardPage() {
 
     // New state for parent's tasks collapse
     const [parentExpanded, setParentExpanded] = useState(false);
+
+    // New state for active tab in the tabbed interface.
+    // For a parent, 'parent' will refer to the parent's dashboard; other tabs will have child ids.
+    const [activeTab, setActiveTab] = useState<string>('');
+
+    // Helper function to convert task status from Supabase to QuestCard expected status
+    const mapStatus = (status: string) => {
+      if (status === 'pending approval') return 'pending';
+      if (status === 'rejected') return 'failed';
+      return status as Quest['status'];
+    };
 
     console.log('DashboardPage rendering', { user, dbUser, tasks, childTasks });
 
@@ -267,170 +283,11 @@ export default function DashboardPage() {
         };
     }, [familyId]);
 
-    // Updated handleTaskCompletion to support 'edit' and 'delete' actions
-    const handleTaskCompletion = async (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => {
-        if(action === 'edit' || action === 'delete'){
-            await fetchTasks();
-            if(children && children.length > 0){
-                await fetchChildTasks();
-            }
-            return;
-        }
-
-        try {
-            // Fetch the task
-            const { data: task, error: taskError } = await supabase
-                .from('tasks')
-                .select('*')
-                .eq('id', questId)
-                .single();
-
-            if (taskError) {
-                console.error('Error fetching task:', taskError);
-                return;
-            }
-
-            // Determine the new status based on the action
-            let newStatus: string;
-            if (action === 'approve') {
-                newStatus = 'completed';
-            } else if (action === 'assigned') {
-                newStatus = 'assigned';
-            } else {
-                // This is a child marking a task as done
-                newStatus = 'pending approval';
-            }
-
-            // Update task status
-            const { error: updateError } = await supabase
-                .from('tasks')
-                .update({ status: newStatus })
-                .eq('id', questId);
-
-            if (updateError) {
-                console.error('Error updating task status:', updateError);
-                return;
-            }
-
-            // Only update points if the task is being approved
-            if (newStatus === 'completed' && task.assigned_child_id) {
-                // Fetch current points
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('points')
-                    .eq('id', task.assigned_child_id)
-                    .single();
-
-                if (userError) {
-                    console.error('Error fetching user points:', userError);
-                    return;
-                }
-
-                const newPoints = (userData.points || 0) + task.reward_points;
-
-                // Update user points
-                const { error: pointsError } = await supabase
-                    .from('users')
-                    .update({ points: newPoints })
-                    .eq('id', task.assigned_child_id);
-
-                if (pointsError) {
-                    console.error('Error updating points:', pointsError);
-                    return;
-                }
-
-                // Update local state for child points
-                updateChildPoints(task.assigned_child_id, newPoints);
-            }
-
-            // Refresh tasks
-            fetchTasks();
-            if (children && children.length > 0) {
-                fetchChildTasks();
-            }
-        } catch (err) {
-            console.error('Error in handleTaskCompletion:', err);
-            setError('Failed to complete task');
-        }
-    };
-
-    // Fetch parent's family and child accounts once the current dbUser is available
-    useEffect(() => {
-        if (dbUser) {
-            const fetchFamilyAndChildren = async () => {
-                console.log('Fetching family for parent:', dbUser.id);
-                // Fetch family record where parent is the owner using parent's DB ID
-                const { data: familyData, error: familyError } = await supabase
-                    .from('families')
-                    .select('*')
-                    .eq('owner_id', dbUser.id)
-                    .single();
-                if (familyError) {
-                    console.error('Error fetching family:', familyError);
-                    setError('Failed to fetch family data');
-                    return;
-                }
-                console.log('Fetched family data:', familyData);
-                
-                if (familyData) {
-                    setFamilyId(familyData.family_id);
-                    console.log('Fetching children for family:', familyData.family_id);
-                    // Fetch child accounts associated with this family
-                    const { data: childrenData, error: childrenError } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('family_id', familyData.family_id)
-                        .eq('role', 'child');
-                    if (childrenError) {
-                        console.error('Error fetching children:', childrenError);
-                        setError('Failed to fetch children data');
-                    } else {
-                        console.log('Fetched children data:', childrenData);
-                        setChildren(childrenData);
-                    }
-                } else {
-                    console.log('No family found, creating new family...');
-                    // Create a new family if none exists
-                    const { data: newFamily, error: createFamilyError } = await supabase
-                        .from('families')
-                        .insert([{
-                            owner_id: dbUser.id,
-                            name: `${dbUser.name}'s Family`
-                        }])
-                        .select()
-                        .single();
-                    
-                    if (createFamilyError) {
-                        console.error('Error creating family:', createFamilyError);
-                        setError('Failed to create family');
-                    } else {
-                        console.log('Created new family:', newFamily);
-                        setFamilyId(newFamily.family_id);
-                    }
-                }
-            };
-            fetchFamilyAndChildren();
-        }
-    }, [dbUser]);
-
-    // Helper function to convert task status from Supabase to QuestCard expected status
-    const mapStatus = (status: string) => {
-      if (status === 'pending approval') return 'pending';
-      if (status === 'rejected') return 'failed';
-      return status as Quest['status'];
-    };
-
-    // Function to fetch parent's tasks (quests) from the Supabase 'tasks' table using the dbUser's id
+    // Function to fetch parent's tasks (quests)
     const fetchTasks = async () => {
       if (!dbUser) return;
-      console.log('Fetching tasks for user:', dbUser.id);
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('created_by', dbUser.id);
-      if (error) {
-        console.error('Error fetching tasks:', error);
-      } else if (data) {
+      try {
+        const data = await fetchParentTasks(dbUser.id);
         console.log('Raw tasks data fetched:', data);
         const quests = data.map((task: any) => ({
           id: task.id,
@@ -444,20 +301,17 @@ export default function DashboardPage() {
         }));
         console.log('Mapped tasks (quests):', quests);
         setTasks(quests);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
       }
     };
 
-    // Function to fetch tasks for each child using their unique ID (assigned_child_id)
+    // Function to fetch tasks for each child
     const fetchChildTasks = async () => {
       let updatedChildTasks: { [key: string]: Quest[] } = {};
       for (const child of children) {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('assigned_child_id', child.id);
-        if (error) {
-          console.error('Error fetching tasks for child', child.id, error);
-        } else if (data) {
+        try {
+          const data = await repoFetchChildTasks(child.id);
           updatedChildTasks[child.id] = data.map((task: any) => ({
             id: task.id,
             title: task.title,
@@ -466,6 +320,8 @@ export default function DashboardPage() {
             frequency: task.frequency,
             status: mapStatus(task.status)
           }));
+        } catch (error) {
+          console.error('Error fetching tasks for child', child.id, error);
         }
       }
       setChildTasks(updatedChildTasks);
@@ -486,7 +342,7 @@ export default function DashboardPage() {
       }
     }, [children]);
 
-    // Add useEffect to calculate total points whenever children or their points change
+    // Add useEffect to calculate total points whenever children change
     useEffect(() => {
         if (children) {
             const total = children.reduce((sum, child) => sum + (child.points || 0), 0);
@@ -627,7 +483,211 @@ export default function DashboardPage() {
         }
     };
 
-    // Add computed variables for active and completed tasks before the loading check
+    // Updated handleTaskCompletion to use repository functions
+    const handleTaskCompletion = async (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => {
+      if (action === 'edit' || action === 'delete') {
+        await fetchTasks();
+        if (children && children.length > 0) {
+          await fetchChildTasks();
+        }
+        return;
+      }
+
+      try {
+        // Fetch the task using repository function
+        const task = await fetchTask(questId);
+
+        // Determine the new status based on the action
+        let newStatus: string;
+        if (action === 'approve') {
+          newStatus = 'completed';
+        } else if (action === 'assigned') {
+          newStatus = 'assigned';
+        } else {
+          // This is a child marking a task as done
+          newStatus = 'pending approval';
+        }
+
+        // Update task status using repository function
+        await updateTaskStatus(questId, newStatus);
+
+        // Only update points if the task is being approved
+        if (newStatus === 'completed' && task.assigned_child_id) {
+          // Fetch current points
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('points')
+            .eq('id', task.assigned_child_id)
+            .single();
+          if (userError) {
+            console.error('Error fetching user points:', userError);
+            return;
+          }
+
+          const newPoints = (userData.points || 0) + task.reward_points;
+
+          // Update user points
+          const { error: pointsError } = await supabase
+            .from('users')
+            .update({ points: newPoints })
+            .eq('id', task.assigned_child_id);
+          if (pointsError) {
+            console.error('Error updating points:', pointsError);
+            return;
+          }
+
+          // Update local state for child points
+          updateChildPoints(task.assigned_child_id, newPoints);
+        }
+
+        // Refresh tasks
+        fetchTasks();
+        if (children && children.length > 0) {
+          fetchChildTasks();
+        }
+      } catch (err) {
+        console.error('Error in handleTaskCompletion:', err);
+        setError('Failed to complete task');
+      }
+    };
+
+    // Temporary manual reset for recurring tasks (for local development)
+    const handleManualResetRecurringTasks = async () => {
+      const now = new Date();
+      // Query tasks with frequency 'daily' or 'weekly' that are due for reset (next_occurrence <= now)
+      const { data: dueTasks, error: selectError } = await supabase
+        .from('tasks')
+        .select('*')
+        .in('frequency', ['daily', 'weekly'])
+        .lte('next_occurrence', now.toISOString());
+      if (selectError) {
+        console.error('Error fetching due tasks:', selectError);
+        alert('Error fetching due tasks. Please check the console for details.');
+        return;
+      }
+      if (!dueTasks || dueTasks.length === 0) {
+        alert('No recurring tasks are due for a reset.');
+        return;
+      }
+      const updates = dueTasks.map((task: any) => {
+        let newNextOccurrence;
+        if (task.frequency === 'daily') {
+          newNextOccurrence = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        } else if (task.frequency === 'weekly') {
+          newNextOccurrence = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        } else {
+          // fallback (should not occur since query filters for daily and weekly)
+          newNextOccurrence = now;
+        }
+        return supabase
+          .from('tasks')
+          .update({
+            status: 'assigned',
+            last_completed_at: now.toISOString(),
+            next_occurrence: newNextOccurrence.toISOString()
+          })
+          .eq('id', task.id);
+      });
+      await Promise.all(updates);
+      alert('Recurring tasks have been reset.');
+      fetchTasks();
+    };
+
+    // Fetch parent's family and child accounts once the current dbUser is available
+    useEffect(() => {
+        if (dbUser) {
+            const fetchFamilyAndChildren = async () => {
+                console.log('Fetching family for parent:', dbUser.id);
+                // Fetch family record where parent is the owner
+                const { data: familyData, error: familyError } = await supabase
+                    .from('families')
+                    .select('*')
+                    .eq('owner_id', dbUser.id)
+                    .single();
+                if (familyError) {
+                    console.error('Error fetching family:', familyError);
+                    setError('Failed to fetch family data');
+                    return;
+                }
+                console.log('Fetched family data:', familyData);
+                
+                if (familyData) {
+                    setFamilyId(familyData.family_id);
+                    console.log('Fetching children for family:', familyData.family_id);
+                    // Fetch child accounts associated with this family
+                    const { data: childrenData, error: childrenError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('family_id', familyData.family_id)
+                        .eq('role', 'child');
+                    if (childrenError) {
+                        console.error('Error fetching children:', childrenError);
+                        setError('Failed to fetch children data');
+                    } else {
+                        console.log('Fetched children data:', childrenData);
+                        setChildren(childrenData);
+                    }
+                } else {
+                    console.log('No family found, creating new family...');
+                    // Create a new family if none exists
+                    const { data: newFamily, error: createFamilyError } = await supabase
+                        .from('families')
+                        .insert([{ owner_id: dbUser.id, name: `${dbUser.name}'s Family` }])
+                        .select()
+                        .single();
+                    
+                    if (createFamilyError) {
+                        console.error('Error creating family:', createFamilyError);
+                        setError('Failed to create family');
+                    } else {
+                        console.log('Created new family:', newFamily);
+                        setFamilyId(newFamily.family_id);
+                    }
+                }
+            };
+            fetchFamilyAndChildren();
+        }
+    }, [dbUser]);
+
+    // Update activeTab initialization for parent users
+    useEffect(() => {
+      if (dbUser && !activeTab) {
+         if (dbUser.role === 'parent') {
+            if (children && children.length > 0) {
+                setActiveTab(children[0].id);
+            } else {
+                setActiveTab('parent');
+            }
+         } else {
+            setActiveTab(dbUser.id);
+         }
+      }
+    }, [dbUser, activeTab, children]);
+
+    // Update tabs computation for parent users to place the parent's tab last
+    const tabs = useMemo(() => {
+      if (!dbUser) return [];
+      if (dbUser.role === 'parent') {
+         const childTabs = children.map(child => ({ id: child.id, label: child.name }));
+         return [...childTabs, { id: 'parent', label: 'Parent Dashboard' }];
+      } else {
+         return [{ id: dbUser.id, label: dbUser.user_metadata?.name || 'My Dashboard' }];
+      }
+    }, [dbUser, children]);
+
+    // Determine the selected child for a child tab (for non-parent activeTab)
+    let selectedChild: Child | null = null;
+    if (dbUser) {
+      if (dbUser.role === 'child') {
+        // If logged in user is a child, use dbUser data as the child record
+        // We assume dbUser shape is compatible with Child interface
+        selectedChild = { id: dbUser.id, name: dbUser.name, points: dbUser.points, family_id: dbUser.family_id, role: 'child' };
+      } else if (activeTab !== 'parent') {
+        selectedChild = children.find(child => child.id === activeTab) || null;
+      }
+    }
+
+    // Compute active and completed tasks for parent's task view
     const activeTasks = tasks.filter(task => task.status !== 'completed');
     const completedTasks = tasks.filter(task => task.status === 'completed');
 
@@ -667,7 +727,7 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {/* Add PointsDisplay component at the top */}
+                {/* Display total family points at the top */}
                 {children && (
                     <PointsDisplay 
                         children={children} 
@@ -675,125 +735,165 @@ export default function DashboardPage() {
                     />
                 )}
 
-                {/* Section for Child Accounts */}
-                <section className="mb-8">
-                    <h2 className="text-2xl font-semibold mb-4">Child Accounts</h2>
-                    {children && children.length > 0 ? (
-                        <ul className="mb-4">
-                            {children.map((child) => (
-                                <li key={child.id} className="p-2 border-b flex items-center justify-between">
-                                    {editingChildId === child.id ? (
-                                        <>
-                                            <input type="text" value={editingChildName} onChange={handleEditChange} className="border rounded p-1 mr-2" />
-                                            <button onClick={() => handleSaveEdit(child.id)} className="text-green-600 mr-2">Save</button>
-                                            <button onClick={handleCancelEdit} className="text-red-600">Cancel</button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>{child.name}</span>
-                                            <div>
-                                                <button onClick={() => handleEditClick(child)} className="text-blue-600 mr-2">Edit</button>
-                                                <button onClick={() => handleDeleteChild(child.id)} className="text-red-600">Delete</button>
-                                            </div>
-                                        </>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="mb-4">No child accounts found.</p>
-                    )}
-                    <form onSubmit={handleAddChild} className="flex items-center">
-                        <input
-                            type="text"
-                            value={childName}
-                            onChange={(e) => setChildName(e.target.value)}
-                            placeholder="Child Name"
-                            className="border border-gray-300 p-2 rounded mr-2"
-                        />
-                        <button
-                            type="submit"
-                            disabled={childLoading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded"
+                {/* Tabbed Interface for Parent and Child Dashboards */}
+                <div className="mt-4">
+                  <div className="border-b border-gray-300 mb-0">
+                    <div className="flex w-full">
+                      {tabs.map(tab => (
+                        <button 
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`flex-1 text-center py-3 px-6 text-xl ${activeTab === tab.id ? 'bg-gradient-to-r from-blue-400 to-purple-400 text-white shadow-md rounded-t' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-t'}`}
                         >
-                            {childLoading ? 'Adding...' : 'Add Child Account'}
+                          {tab.label}
                         </button>
-                    </form>
-                </section>
-
-                {/* Section for Parent Tasks */}
-                <section className="mb-8">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-semibold mb-4">Tasks</h2>
-                        <button onClick={() => setParentExpanded(!parentExpanded)} className="text-blue-600">
-                           {parentExpanded ? 'Hide Tasks' : 'Show Tasks'}
-                        </button>
+                      ))}
                     </div>
-                    {parentExpanded && (
+                  </div>
+                  <div className="p-4 bg-white shadow">
+                    {activeTab === 'parent' && (
                       <>
-                        {dbUser && (
-                            <AddTask parentId={dbUser!.id} children={children} onTaskAdded={() => {
-                                fetchTasks();
-                                fetchChildTasks();
-                            }} />
-                        )}
-                        {activeTasks.length > 0 ? (
-                            activeTasks.map((task: Quest) => (
-                                <QuestCard key={task.id} quest={task} userRole={user?.user_metadata?.role || 'parent'} onComplete={handleTaskCompletion} />
-                            ))
-                        ) : (
-                            <p className="mb-4">No tasks found.</p>
-                        )}
+                        {/* Parent Dashboard Content */}
+                        {/* Child Accounts Section for Parent (Child Management) */}
+                        <section className="mb-8">
+                            <h2 className="text-2xl font-semibold mb-4">Child Accounts</h2>
+                            {children && children.length > 0 ? (
+                                <ul className="mb-4">
+                                    {children.map((child) => (
+                                        <li key={child.id} className="p-2 border-b flex items-center justify-between">
+                                            {editingChildId === child.id ? (
+                                                <>
+                                                    <input type="text" value={editingChildName} onChange={handleEditChange} className="border rounded p-1 mr-2" />
+                                                    <button onClick={() => handleSaveEdit(child.id)} className="text-green-600 mr-2">Save</button>
+                                                    <button onClick={handleCancelEdit} className="text-red-600">Cancel</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>{child.name}</span>
+                                                    <div>
+                                                        <button onClick={() => handleEditClick(child)} className="text-blue-600 mr-2">Edit</button>
+                                                        <button onClick={() => handleDeleteChild(child.id)} className="text-red-600">Delete</button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="mb-4">No child accounts found.</p>
+                            )}
+                            <form onSubmit={handleAddChild} className="flex items-center">
+                                <input
+                                    type="text"
+                                    value={childName}
+                                    onChange={(e) => setChildName(e.target.value)}
+                                    placeholder="Child Name"
+                                    className="border border-gray-300 p-2 rounded mr-2"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={childLoading}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded"
+                                >
+                                    {childLoading ? 'Adding...' : 'Add Child Account'}
+                                </button>
+                            </form>
+                        </section>
+
+                        {/* Manual Recurring Tasks Reset Button */}
+                        <section className="mb-8">
+                          <button 
+                            onClick={handleManualResetRecurringTasks}
+                            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                          >
+                            Manual Reset Recurring Tasks
+                          </button>
+                        </section>
+
+                        {/* Parent Tasks Section */}
+                        <DashboardSection title="Tasks" toggleable={true} defaultExpanded={true}>
+                            {dbUser && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <AddTask parentId={dbUser.id} children={children} onTaskAdded={() => {
+                                        fetchTasks();
+                                        fetchChildTasks();
+                                    }} />
+                                    <AddAward onAwardAdded={() => {
+                                        // Optionally refresh awards if needed
+                                    }} />
+                                </div>
+                            )}
+                            {activeTasks.length > 0 ? (
+                                activeTasks.map((task: Quest) => (
+                                    <QuestCard key={task.id} quest={task} userRole={user?.user_metadata?.role || 'parent'} onComplete={handleTaskCompletion} />
+                                ))
+                            ) : (
+                                <p className="mb-4">No tasks found.</p>
+                            )}
+                        </DashboardSection>
+
+                        {/* Quest History Section */}
+                        <section className="mb-8">
+                            <h2 className="text-2xl font-semibold mb-4">Quest History</h2>
+                            {completedTasks.length > 0 ? (
+                                <table className="min-w-full bg-white">
+                                    <thead>
+                                        <tr>
+                                            <th className="px-4 py-2 border">Task Name</th>
+                                            <th className="px-4 py-2 border">Description</th>
+                                            <th className="px-4 py-2 border">Completed At</th>
+                                            <th className="px-4 py-2 border">Child</th>
+                                            <th className="px-4 py-2 border">Points Awarded</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {completedTasks.map((task: any) => (
+                                            <tr key={task.id}>
+                                                <td className="px-4 py-2 border">{task.title}</td>
+                                                <td className="px-4 py-2 border">{task.description}</td>
+                                                <td className="px-4 py-2 border">{task.completedAt}</td>
+                                                <td className="px-4 py-2 border">{children.find(child => child.id === task.assignedChildId)?.name || 'Unknown Child'}</td>
+                                                <td className="px-4 py-2 border">{task.points}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <p>No completed quests</p>
+                            )}
+                        </section>
                       </>
                     )}
-                </section>
 
-                {/* New Section for Child Tasks */}
-                <section className="mb-8">
-                    <h2 className="text-2xl font-semibold mb-4">Child Tasks</h2>
-                    {children.map((child) => (
-                        <ChildDashboardSection
-                            key={child.id}
-                            child={child}
-                            tasks={(childTasks[child.id] || []).filter(task => task.status !== 'completed')}
-                            onComplete={handleTaskCompletion}
-                        />
-                    ))}
-                </section>
-
-                {/* Quest History Section */}
-                <section className="mb-8">
-                    <h2 className="text-2xl font-semibold mb-4">Quest History</h2>
-                    {completedTasks.length > 0 ? (
-                        <table className="min-w-full bg-white">
-                            <thead>
-                                <tr>
-                                    <th className="px-4 py-2 border">Task Name</th>
-                                    <th className="px-4 py-2 border">Description</th>
-                                    <th className="px-4 py-2 border">Completed At</th>
-                                    <th className="px-4 py-2 border">Child</th>
-                                    <th className="px-4 py-2 border">Points Awarded</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {completedTasks.map((task: any) => (
-                                    <tr key={task.id}>
-                                        <td className="px-4 py-2 border">{task.title}</td>
-                                        <td className="px-4 py-2 border">{task.description}</td>
-                                        <td className="px-4 py-2 border">{task.completedAt}</td>
-                                        <td className="px-4 py-2 border">{children.find(child => child.id === task.assignedChildId)?.name || 'Unknown Child'}</td>
-                                        <td className="px-4 py-2 border">{task.points}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <p>No completed quests</p>
+                    {activeTab !== 'parent' && (
+                      <>
+                        {selectedChild && (
+                          <PointsDisplay children={[selectedChild]} showFamilyPoints={false} />
+                        )}
+                        <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>
+                          {selectedChild ? (
+                            <ChildDashboardSection
+                              child={selectedChild}
+                              tasks={(childTasks[selectedChild.id] || []).filter(task => task.status !== 'completed')}
+                              onComplete={handleTaskCompletion}
+                            />
+                          ) : (
+                            <p>No data available for the selected child.</p>
+                          )}
+                        </DashboardSection>
+                        
+                        <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
+                          {selectedChild && (
+                            <AwardsSection 
+                              hideHeading={true}
+                              childrenAccounts={[selectedChild]} 
+                              onRedeemSuccess={(childId, newPoints) => updateChildPoints(childId, newPoints)} 
+                            />
+                          )}
+                        </DashboardSection>
+                      </>
                     )}
-                </section>
-
-                <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
-                    <p className="text-gray-500 text-xl">Dashboard content coming soon...</p>
+                  </div>
                 </div>
             </main>
         </div>

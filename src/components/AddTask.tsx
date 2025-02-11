@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { addTask } from '@/repositories/tasksRepository';
 import { Plus } from 'lucide-react';
 
 // Define a Child interface matching tasks assignment
@@ -61,16 +62,9 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, children, onTaskAdded }) =>
       status: "assigned"
     };
 
-    // Insert the new task into the 'tasks' table
-    const { error: insertError } = await supabase
-      .from('tasks')
-      .insert([payload])
-      .single();
-
-    if (insertError) {
-      setError(insertError.message);
-    } else {
-      // Notify parent to refresh tasks and close the modal
+    try {
+      // Use repository function to add the task
+      await addTask(payload);
       if (onTaskAdded) {
         onTaskAdded();
       }
@@ -81,6 +75,8 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, children, onTaskAdded }) =>
       setRewardPoints("");
       setFrequency("daily");
       setAssignedChild("");
+    } catch (insertError: any) {
+      setError(insertError.message);
     }
     setLoading(false);
   };

@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { updateTask, deleteTask } from '@/repositories/tasksRepository';
 
 export interface Quest {
   id: string;
@@ -73,16 +74,9 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
         reward_points: points,
         frequency: editFrequency
       };
-      const { error } = await supabase
-        .from('tasks')
-        .update(payload)
-        .eq('id', quest.id);
-      if (error) {
-        setEditError(error.message);
-      } else {
-        if (onComplete) onComplete(quest.id, 'edit');
-        setIsEditModalOpen(false);
-      }
+      await updateTask(quest.id, payload);
+      if (onComplete) onComplete(quest.id, 'edit');
+      setIsEditModalOpen(false);
     } catch (err) {
       console.error('Error updating quest:', err);
       setEditError('An unexpected error occurred.');
@@ -93,15 +87,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this quest?')) return;
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', quest.id);
-      if (error) {
-        console.error('Error deleting quest:', error);
-      } else {
-        if (onComplete) onComplete(quest.id, 'delete');
-      }
+      await deleteTask(quest.id);
+      if (onComplete) onComplete(quest.id, 'delete');
     } catch (err) {
       console.error('Error in deleting quest:', err);
     }
