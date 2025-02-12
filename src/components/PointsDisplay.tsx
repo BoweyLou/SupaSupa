@@ -18,6 +18,33 @@ const calculateLevel = (points: number): number => {
   return Math.floor(points / 50) + 1;
 };
 
+// Updated renderStars function with soft glow and multi-line support
+const renderStars = (points: number) => {
+  const fullStars = Math.floor(points / 10);
+  const hasHalfStar = points % 10 >= 5;
+  let stars = [];
+  for (let i = 0; i < fullStars; i++) {
+    stars.push(<Star key={`full-${i}`} className="inline-block text-yellow-400 mr-1 drop-shadow-lg" />);
+  }
+  if (hasHalfStar) {
+    stars.push(<Star key="half" className="inline-block text-yellow-400 mr-1 drop-shadow-lg" style={{ clipPath: 'inset(0 50% 0 0)' }} />);
+  }
+  const maxStarsPerRow = 10;
+  const rows = [];
+  for (let i = 0; i < stars.length; i += maxStarsPerRow) {
+    rows.push(
+      <div key={`row-${i}`} className="flex">
+        {stars.slice(i, i + maxStarsPerRow)}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-center">
+      {rows}
+    </div>
+  );
+};
+
 export default function PointsDisplay({ children, totalPoints = 0, showFamilyPoints = true }: PointsDisplayProps) {
   const numColumns = children.length > 0 ? children.length : 1;
 
@@ -30,10 +57,15 @@ export default function PointsDisplay({ children, totalPoints = 0, showFamilyPoi
         >
           <div className="flex">
             {children.map(child => (
-              <div key={child.id} className="flex-1 text-center border-r border-white last:border-r-0 relative p-2">
+              <div key={child.id} className="flex-1 text-left border-r border-white last:border-r-0 relative py-2 px-6">
                 <div className="text-lg font-semibold">{child.name}</div>
-                <div className="text-4xl font-bold"><Star className="inline-block mr-1" />{child.points}</div>
-                <div className="absolute bottom-2 right-2 text-xs flex items-center">
+                <div className="text-4xl font-bold">
+                  {child.points}<span className="ml-1 text-sm opacity-90">points</span>
+                </div>
+                <div className="mt-2 flex justify-center">
+                  {renderStars(child.points)}
+                </div>
+                <div className="absolute top-2 right-2 text-xs flex items-center">
                   <Zap className="inline-block mr-1" /> Level {calculateLevel(child.points)}
                 </div>
               </div>
@@ -55,7 +87,9 @@ export default function PointsDisplay({ children, totalPoints = 0, showFamilyPoi
               <div className="flex items-center justify-between">
                 <div>
                   <div className="mt-1">
-                    <span className="text-2xl font-bold"><Star className="inline-block mr-1" />{child.points}</span>
+                    <span className="text-2xl font-bold">
+                      {child.points}
+                    </span>
                     <span className="ml-1 text-sm opacity-90">points</span>
                   </div>
                 </div>
@@ -63,6 +97,9 @@ export default function PointsDisplay({ children, totalPoints = 0, showFamilyPoi
                   <div className="text-sm opacity-90">Level</div>
                   <div className="text-xl font-bold">{calculateLevel(child.points)}</div>
                 </div>
+              </div>
+              <div className="mt-2 flex justify-center">
+                {renderStars(child.points)}
               </div>
             </div>
           ))}

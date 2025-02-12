@@ -30,6 +30,7 @@ The database consists of the following tables:
 - **assigned_child_id**: uuid, optional; references the assigned child.
 - **created_at**: timestamp with time zone, not null, defaults to now().
 - **updated_at**: timestamp with time zone, not null, defaults to now().
+- **next_occurrence**: timestamp with time zone, optional; defaults to now(). This column is used to track the scheduled time for recurring tasks (daily/weekly) and is updated during manual task resets.
 
 ## Users Table
 - **id**: uuid, primary key, auto-generated using uuid_generate_v4(), not null.

@@ -10,6 +10,9 @@ import AwardsSection from '@/components/AwardsSection';
 import AddAward from '@/components/AddAward';
 import DashboardSection from '@/components/DashboardSection';
 import { Compass, Award as AwardIcon } from 'lucide-react';
+import AddBonusAward from '@/components/AddBonusAward';
+import BonusAwardCard, { AVAILABLE_ICONS, IconConfig } from '@/components/BonusAwardCard';
+import { Star } from 'lucide-react';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -30,6 +33,30 @@ interface DBUser {
   role: string;
   points: number;
   user_metadata?: { [key: string]: any };
+}
+
+// NEW: Define BonusAward interface
+interface BonusAward {
+  id: string;
+  title: string;
+  icon: string;
+  points: number;
+  status: 'available' | 'awarded';
+  assigned_child_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  // New fields for awarded instances
+  instance_id?: string;
+  awarded_at?: string;
+  instances?: BonusAwardInstance[];
+}
+
+// Add new interface for awarded bonus instances
+interface BonusAwardInstance {
+  id: string;
+  bonus_award_id: string;
+  assigned_child_id: string;
+  awarded_at: string;
 }
 
 // ChildDashboardSection: A reusable component to display tasks for a child account
@@ -61,6 +88,44 @@ function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tas
     </div>
   );
 }
+
+// Add ChildSelectorModal component
+const ChildSelectorModal = ({ isOpen, onClose, onSelect, children }: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onSelect: (childId: string) => void; 
+  children: Child[]; 
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded p-6 w-full max-w-md">
+        <h2 className="text-2xl mb-4">Select Child</h2>
+        <div className="space-y-2">
+          {children.map((child) => (
+            <button
+              key={child.id}
+              onClick={() => onSelect(child.id)}
+              className="w-full p-4 text-left hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors duration-200 flex items-center justify-between"
+            >
+              <span className="text-lg">{child.name}</span>
+              <span className="text-sm text-gray-500">{child.points} pts</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition-colors duration-200"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
@@ -95,11 +160,28 @@ export default function DashboardPage() {
     // For a parent, 'parent' will refer to the parent's dashboard; other tabs will have child ids.
     const [activeTab, setActiveTab] = useState<string>('');
 
+    // NEW: State for Bonus Awards
+    const [bonusAwards, setBonusAwards] = useState<BonusAward[]>([]);
+
+    // Add new state for child selector
+    const [isChildSelectorOpen, setIsChildSelectorOpen] = useState(false);
+    const [selectedBonusAwardId, setSelectedBonusAwardId] = useState<string | null>(null);
+
     // Helper function to convert task status from Supabase to QuestCard expected status
     const mapStatus = (status: string) => {
       if (status === 'pending approval') return 'pending';
       if (status === 'rejected') return 'failed';
       return status as Quest['status'];
+    };
+
+    // Helper function to check if a given date string represents a date that is today
+    const isToday = (dateString: string | undefined) => {
+      if (!dateString) return false;
+      const date = new Date(dateString);
+      const now = new Date();
+      return date.getFullYear() === now.getFullYear() &&
+             date.getMonth() === now.getMonth() &&
+             date.getDate() === now.getDate();
     };
 
     console.log('DashboardPage rendering', { user, dbUser, tasks, childTasks });
@@ -323,7 +405,8 @@ export default function DashboardPage() {
             description: task.description,
             points: task.reward_points,
             frequency: task.frequency,
-            status: mapStatus(task.status)
+            status: mapStatus(task.status),
+            completedAt: task.updated_at
           }));
         } catch (error) {
           console.error('Error fetching tasks for child', child.id, error);
@@ -559,43 +642,73 @@ export default function DashboardPage() {
     // Temporary manual reset for recurring tasks (for local development)
     const handleManualResetRecurringTasks = async () => {
       const now = new Date();
-      // Query tasks with frequency 'daily' or 'weekly' that are due for reset (next_occurrence <= now)
+      // Set a threshold to allow resetting tasks up to 24 hours before they are due
+      const resetThreshold = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      console.log('handleManualResetRecurringTasks initiated at:', now.toISOString());
+      console.log('Fetching tasks due for reset with next_occurrence <=:', resetThreshold.toISOString());
+
       const { data: dueTasks, error: selectError } = await supabase
         .from('tasks')
         .select('*')
         .in('frequency', ['daily', 'weekly'])
-        .lte('next_occurrence', now.toISOString());
-      if (selectError) {
+        .lte('next_occurrence', resetThreshold.toISOString());
+
+      if (selectError && Object.keys(selectError).length > 0) {
         console.error('Error fetching due tasks:', selectError);
         alert('Error fetching due tasks. Please check the console for details.');
         return;
       }
+
+      console.log('Fetched due tasks:', dueTasks);
       if (!dueTasks || dueTasks.length === 0) {
         alert('No recurring tasks are due for a reset.');
         return;
       }
-      const updates = dueTasks.map((task: any) => {
+
+      const updates = dueTasks.map(async (task: any) => {
         let newNextOccurrence;
         if (task.frequency === 'daily') {
           newNextOccurrence = new Date(now.getTime() + 24 * 60 * 60 * 1000);
         } else if (task.frequency === 'weekly') {
           newNextOccurrence = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         } else {
-          // fallback (should not occur since query filters for daily and weekly)
           newNextOccurrence = now;
         }
-        return supabase
-          .from('tasks')
-          .update({
-            status: 'assigned',
-            last_completed_at: now.toISOString(),
-            next_occurrence: newNextOccurrence.toISOString()
-          })
-          .eq('id', task.id);
+
+        // Always reset to 'assigned' so the task is actionable
+        const newStatus = 'assigned';
+
+        console.log(`Updating task ${task.id}: current next_occurrence ${task.next_occurrence} -> new next_occurrence:`, newNextOccurrence.toISOString());
+
+        try {
+          const response = await supabase
+            .from('tasks')
+            .update({
+              status: newStatus,
+              next_occurrence: newNextOccurrence.toISOString()
+            })
+            .eq('id', task.id);
+          
+          if (response.error) {
+            console.error(`Response error for task ${task.id}:`, response.error);
+            throw response.error;
+          }
+
+          console.log(`Updated task ${task.id} successfully:`, response);
+          return response;
+        } catch (error: any) {
+          console.error(`Error updating task ${task.id}:`, error);
+          throw error;
+        }
       });
-      await Promise.all(updates);
-      alert('Recurring tasks have been reset.');
-      fetchTasks();
+
+      try {
+        await Promise.all(updates);
+        alert('Recurring tasks have been reset.');
+      } catch (updateError) {
+        console.error('Error during task updates:', updateError);
+        alert('An error occurred while updating tasks. Check console for details.');
+      }
     };
 
     // Update the family fetch effect for parent users
@@ -696,9 +809,219 @@ export default function DashboardPage() {
       }
     }
 
+    // Compute the child's completed tasks for today
+    const completedTasksForChild = selectedChild ? (childTasks[selectedChild.id] || []).filter(task => task.status === 'completed' && isToday(task.completedAt)) : [];
+
+    // Component to display a small completed task card
+    const CompletedTaskCard = ({ task }: { task: Quest }) => {
+      return (
+        <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '8px', textAlign: 'center', backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <AwardIcon size={20} color="#f9c74f" style={{ display: 'block', margin: '0 auto' }} />
+          <div style={{ fontWeight: 'bold', marginTop: '4px', fontSize: '0.8rem' }}>{task.title}</div>
+          <div style={{ fontSize: '0.75rem', color: 'green' }}>approved</div>
+        </div>
+      );
+    };
+
     // Compute active and completed tasks for parent's task view
     const activeTasks = tasks.filter(task => task.status !== 'completed');
     const completedTasks = tasks.filter(task => task.status === 'completed');
+
+    // NEW: Function to fetch bonus awards
+    const fetchBonusAwards = async () => {
+      try {
+        // First, fetch just the bonus awards
+        const { data: awards, error: awardsError } = await supabase
+          .from('bonus_awards')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (awardsError) {
+          console.error('Error fetching bonus awards:', awardsError);
+          setError('Failed to fetch bonus awards');
+          return;
+        }
+
+        // Ensure we have an array even if data is null
+        const safeAwards = awards || [];
+
+        // Map the awards to include default values for instances
+        const processedAwards = safeAwards.map(award => ({
+          ...award,
+          status: 'available' as const,
+          instances: []
+        }));
+
+        // Try to fetch instances if there are any awards
+        if (safeAwards.length > 0) {
+          try {
+            const { data: instances } = await supabase
+              .from('bonus_award_instances')
+              .select('*')
+              .order('awarded_at', { ascending: false });
+
+            // If we have instances, add them to the corresponding awards
+            if (instances && instances.length > 0) {
+              instances.forEach(instance => {
+                const award = processedAwards.find(a => a.id === instance.bonus_award_id);
+                if (award) {
+                  if (!award.instances) award.instances = [];
+                  award.instances.push(instance);
+                }
+              });
+            }
+          } catch (instanceError) {
+            console.error('Error fetching bonus award instances:', instanceError);
+            // Don't fail completely if instances fetch fails
+          }
+        }
+
+        setBonusAwards(processedAwards);
+      } catch (err) {
+        console.error('Unexpected error fetching bonus awards:', err);
+        setError('An unexpected error occurred while fetching bonus awards');
+      }
+    };
+
+    // NEW: useEffect to fetch bonus awards for parent
+    useEffect(() => {
+      if (dbUser && dbUser.role === 'parent') {
+         fetchBonusAwards();
+      }
+    }, [dbUser]);
+
+    // NEW: Handler to award a bonus award
+    const handleAwardBonus = async (bonusAwardId: string) => {
+      try {
+        const bonus = bonusAwards.find(b => b.id === bonusAwardId);
+        if (!bonus) {
+          setError('Bonus award not found');
+          return;
+        }
+        
+        if (!children || children.length === 0) {
+          setError('No children accounts found to award bonus to');
+          return;
+        }
+        
+        if (children.length === 1) {
+          // If there's only one child, award directly
+          await awardBonusToChild(bonusAwardId, children[0].id);
+        } else {
+          // If multiple children, show selector
+          setSelectedBonusAwardId(bonusAwardId);
+          setIsChildSelectorOpen(true);
+        }
+      } catch (err) {
+        console.error('Error in handleAwardBonus:', err);
+        setError('Failed to process bonus award');
+      }
+    };
+
+    // Update awardBonusToChild with better error handling
+    const awardBonusToChild = async (bonusAwardId: string, childId: string) => {
+      try {
+        const bonus = bonusAwards.find(b => b.id === bonusAwardId);
+        if (!bonus) {
+          setError('Bonus award not found');
+          return;
+        }
+
+        // Create a new record in bonus_award_instances
+        const { data: instanceData, error: awardError } = await supabase
+          .from('bonus_award_instances')
+          .insert([{ 
+            bonus_award_id: bonusAwardId,
+            assigned_child_id: childId,
+            awarded_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (awardError || !instanceData) {
+          console.error('Error creating bonus award instance:', awardError);
+          setError('Failed to award bonus');
+          return;
+        }
+
+        // Update child's points
+        const { data: childData, error: childError } = await supabase
+          .from('users')
+          .select('points')
+          .eq('id', childId)
+          .single();
+
+        if (childError || !childData) {
+          console.error('Error fetching child points:', childError);
+          setError('Failed to fetch child points');
+          return;
+        }
+
+        const newPoints = (childData.points || 0) + bonus.points;
+        const { error: updateChildError } = await supabase
+          .from('users')
+          .update({ points: newPoints })
+          .eq('id', childId);
+
+        if (updateChildError) {
+          console.error('Error updating child points:', updateChildError);
+          setError('Failed to update child points');
+          return;
+        }
+
+        // Update local state
+        updateChildPoints(childId, newPoints);
+        await fetchBonusAwards();
+        setIsChildSelectorOpen(false);
+        setSelectedBonusAwardId(null);
+      } catch (err) {
+        console.error('Error in awardBonusToChild:', err);
+        setError('Failed to process bonus award');
+      }
+    };
+
+    // Add handler for child selection
+    const handleChildSelect = async (childId: string) => {
+      if (selectedBonusAwardId) {
+        await awardBonusToChild(selectedBonusAwardId, childId);
+      }
+    };
+
+    // NEW: Handler to edit a bonus award
+    const handleEditBonus = async (bonusAwardId: string) => {
+      const bonus = bonusAwards.find(b => b.id === bonusAwardId);
+      if (!bonus) return;
+      const newTitle = window.prompt('Enter new title', bonus.title);
+      if (newTitle === null) return;
+      const newIcon = window.prompt('Enter new icon', bonus.icon);
+      if (newIcon === null) return;
+      const newPointsStr = window.prompt('Enter new points', bonus.points.toString());
+      if (newPointsStr === null) return;
+      const newPoints = parseInt(newPointsStr, 10);
+      const { error } = await supabase
+         .from('bonus_awards')
+         .update({ title: newTitle, icon: newIcon, points: newPoints, updated_at: new Date().toISOString() })
+         .eq('id', bonusAwardId);
+      if (error) {
+         console.error('Error updating bonus award:', error);
+         return;
+      }
+      fetchBonusAwards();
+    };
+
+    // NEW: Handler to delete a bonus award
+    const handleDeleteBonus = async (bonusAwardId: string) => {
+      if (!window.confirm('Are you sure you want to delete this bonus award?')) return;
+      const { error } = await supabase
+         .from('bonus_awards')
+         .delete()
+         .eq('id', bonusAwardId);
+      if (error) {
+         console.error('Error deleting bonus award:', error);
+         return;
+      }
+      fetchBonusAwards();
+    };
 
     if (loading) {
         return (
@@ -841,6 +1164,23 @@ export default function DashboardPage() {
                             )}
                         </DashboardSection>
 
+                        {/* NEW: Bonus Awards Section for Parent Dashboard */}
+                        <DashboardSection title="Bonus Awards" toggleable={true} defaultExpanded={true}>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
+                          </div>
+                          { bonusAwards.filter(b => b.status === 'available').length > 0 ? (
+                            bonusAwards.filter(b => b.status === 'available').map(bonus => (
+                              <BonusAwardCard key={bonus.id} bonusAward={bonus}
+                                 onAward={() => handleAwardBonus(bonus.id)}
+                                 onEdit={() => handleEditBonus(bonus.id)}
+                                 onDelete={() => handleDeleteBonus(bonus.id)} />
+                            ))
+                          ) : (
+                              <p className="mb-4">No bonus awards available.</p>
+                          )}
+                        </DashboardSection>
+
                         {/* Quest History Section */}
                         <section className="mb-8">
                             <h2 className="text-2xl font-semibold mb-4">Quest History</h2>
@@ -879,8 +1219,7 @@ export default function DashboardPage() {
                         {selectedChild && (
                           <PointsDisplay children={[selectedChild]} showFamilyPoints={false} />
                         )}
-                        <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>
-                          {selectedChild ? (
+                        <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>{selectedChild ? (
                             <ChildDashboardSection
                               child={selectedChild}
                               tasks={(childTasks[selectedChild.id] || []).filter(task => task.status !== 'completed')}
@@ -890,7 +1229,65 @@ export default function DashboardPage() {
                             <p>No data available for the selected child.</p>
                           )}
                         </DashboardSection>
-                        
+
+                        {selectedChild && completedTasksForChild.length > 0 && (
+                          <DashboardSection title="Today's Completed Tasks">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                              {completedTasksForChild.map(task => (
+                                <CompletedTaskCard key={task.id} task={task} />
+                              ))}
+                            </div>
+                          </DashboardSection>
+                        )}
+
+                        {/* NEW: Bonus Awards Sections for Child Dashboard */}
+                        {selectedChild && (
+                          <>
+                            <DashboardSection title="Awarded Bonus Awards">
+                              {bonusAwards
+                                .filter(award => award.instances?.some(instance => 
+                                  instance.assigned_child_id === selectedChild.id
+                                ))
+                                .map(bonus => {
+                                  const matchingInstance = bonus.instances?.find(instance => 
+                                    instance.assigned_child_id === selectedChild.id
+                                  );
+                                  const IconComponent = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.icon || Star;
+                                  const iconColor = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.color || '#FFD700';
+                                  
+                                  return (
+                                    <div key={matchingInstance?.id || bonus.id} className="p-2 border mb-2 flex items-center">
+                                      <IconComponent size={24} color={iconColor} className="mr-2" />
+                                      <span>{bonus.title} - {bonus.points} pts</span>
+                                      {matchingInstance?.awarded_at && (
+                                        <span className="ml-auto text-sm text-gray-500">
+                                          {new Date(matchingInstance.awarded_at).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                              })}
+                            </DashboardSection>
+                            <DashboardSection title="Available Bonus Awards">
+                              {bonusAwards
+                                .filter(award => !award.instances?.some(instance => 
+                                  instance.assigned_child_id === selectedChild.id
+                                ))
+                                .map(bonus => {
+                                  const IconComponent = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.icon || Star;
+                                  const iconColor = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.color || '#FFD700';
+                                  
+                                  return (
+                                    <div key={bonus.id} className="p-2 border mb-2 flex items-center">
+                                      <IconComponent size={24} color={iconColor} className="mr-2" />
+                                      <span>{bonus.title} - {bonus.points} pts</span>
+                                    </div>
+                                  );
+                              })}
+                            </DashboardSection>
+                          </>
+                        )}
+
                         <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
                           {selectedChild && (
                             <AwardsSection 
@@ -905,6 +1302,17 @@ export default function DashboardPage() {
                   </div>
                 </div>
             </main>
+
+            {/* Add ChildSelectorModal before the closing div */}
+            <ChildSelectorModal
+              isOpen={isChildSelectorOpen}
+              onClose={() => {
+                setIsChildSelectorOpen(false);
+                setSelectedBonusAwardId(null);
+              }}
+              onSelect={handleChildSelect}
+              children={children}
+            />
         </div>
     );
 } 

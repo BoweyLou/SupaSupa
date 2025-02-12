@@ -13,6 +13,8 @@ export interface Quest {
   points: number;
   frequency?: string; // e.g., daily, weekly, one-off
   status: 'assigned' | 'in-progress' | 'pending' | 'completed' | 'failed';
+  assignedChildId?: string;
+  completedAt?: string; // Optional property to track the date the task was completed
 }
 
 export interface QuestCardProps {
@@ -21,9 +23,10 @@ export interface QuestCardProps {
   // Callback when the task action is triggered
   onComplete?: (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => void;
   hideActions?: boolean;
+  childNameMapping?: { [childId: string]: string };
 }
 
-const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hideActions }) => {
+const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hideActions, childNameMapping }) => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(quest.title);
@@ -116,15 +119,30 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
           {quest.points} pts
         </span>
       </div>
-      {/* Content: Description and Frequency */}
+      {/* Content: Description and Frequency/Status/Assignment based on userRole */}
       <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1rem', color: '#333', margin: '4px 0' }}>{quest.description}</p>
-      {quest.frequency && <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}><strong>Frequency:</strong> {quest.frequency}</p>}
-      {/* Status */}
-      <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}><strong>Status:</strong> {quest.status}</p>
+      {userRole === 'parent' && (
+        <>
+          {quest.frequency && (
+            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}>
+              <strong>Frequency:</strong> {quest.frequency}
+            </p>
+          )}
+          <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}>
+            <strong>Status:</strong> {quest.status}
+          </p>
+          {quest.assignedChildId && (
+            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}>
+              <strong>Assigned to:</strong> {childNameMapping ? (childNameMapping[quest.assignedChildId] || quest.assignedChildId) : quest.assignedChildId}
+            </p>
+          )}
+        </>
+      )}
       {/* Role-based actions */}
       {!hideActions && userRole === 'child' && quest.status === 'assigned' && (
         <button
           style={{
+            width: '100%',
             fontFamily: 'Poppins, sans-serif',
             fontSize: '1rem',
             padding: '8px 12px',
@@ -139,52 +157,72 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
           I did it
         </button>
       )}
-      {!hideActions && userRole === 'parent' && quest.status === 'pending' && (
-        <div>
+      {!hideActions && userRole === 'parent' && (
+        <div style={{ marginTop: '8px', display: 'flex', gap: '8px', width: '100%' }}>
+          {quest.status === 'pending' && (
+            <>
+              <button
+                style={{
+                  flex: 1,
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '1rem',
+                  padding: '8px 12px',
+                  backgroundColor: '#f9c74f',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+                onClick={handleApprove}
+              >
+                Approve
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '1rem',
+                  padding: '8px 12px',
+                  backgroundColor: '#ddd',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+                onClick={handleReject}
+              >
+                Reject
+              </button>
+            </>
+          )}
           <button
             style={{
+              flex: 1,
               fontFamily: 'Poppins, sans-serif',
               fontSize: '1rem',
               padding: '8px 12px',
-              backgroundColor: '#f9c74f',
+              backgroundColor: '#4CAF50',
               color: '#fff',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer'
             }}
-            onClick={handleApprove}
-          >
-            Approve
-          </button>
-          <button
-            style={{
-              fontFamily: 'Poppins, sans-serif',
-              fontSize: '1rem',
-              padding: '8px 12px',
-              backgroundColor: '#ddd',
-              color: '#333',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              marginLeft: '8px'
-            }}
-            onClick={handleReject}
-          >
-            Reject
-          </button>
-        </div>
-      )}
-      {/* New Parent Actions: Edit and Delete */}
-      {!hideActions && userRole === 'parent' && (
-        <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-          <button
-            style={{ padding: '8px 12px', backgroundColor: '#4CAF50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             onClick={handleOpenEditModal}
           >
             Edit
           </button>
           <button
-            style={{ padding: '8px 12px', backgroundColor: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            style={{
+              flex: 1,
+              fontFamily: 'Poppins, sans-serif',
+              fontSize: '1rem',
+              padding: '8px 12px',
+              backgroundColor: '#f44336',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
             onClick={handleDelete}
           >
             Delete

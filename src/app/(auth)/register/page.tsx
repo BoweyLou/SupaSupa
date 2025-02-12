@@ -35,16 +35,26 @@ export default function RegisterPage() {
 
             // Create a new family for the parent user
             if (data.user) {
-                const { error: familyError } = await supabase
+                const { data: familyData, error: familyError } = await supabase
                     .from('families')
                     .insert([
                         {
                             name: `${name}'s Family`,
-                            owner_id: data.user.id,
-                        },
-                    ]);
+                            owner_id: data.user.id
+                        }
+                    ])
+                    .select('*')
+                    .single();
 
                 if (familyError) throw familyError;
+
+                // Update parent's record with the newly created family_id
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ family_id: familyData.family_id })
+                    .eq('id', data.user.id);
+
+                if (updateError) throw updateError;
             }
 
             router.push('/dashboard');
