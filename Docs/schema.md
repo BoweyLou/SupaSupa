@@ -101,6 +101,22 @@
 | tickets               | email             | text                     |
 | tickets               | name              | text                     |
 
+# Prerequisites
+
+Before running the database migrations, the following helper functions must be created in the database:
+
+```sql
+CREATE OR REPLACE FUNCTION public.validate_troubleshooting_errors(errors jsonb[])
+RETURNS boolean AS $$
+BEGIN
+  -- TODO: Implement your validation logic here.
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+```
+
+This function is used to validate the format and content of troubleshooting errors stored in the database. It's designed to be extensible for future validation requirements.
+
 # Database Schema Documentation
 
 This document describes the structure of the PostgreSQL database used in the application. It outlines the tables, the columns within each table, and their respective data types, default values, and constraints. The database utilizes the "uuid-ossp" extension for generating UUIDs to maintain data integrity.
