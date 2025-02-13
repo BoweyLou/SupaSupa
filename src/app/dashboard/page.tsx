@@ -9,10 +9,17 @@ import { fetchParentTasks, fetchChildTasks as repoFetchChildTasks, updateTaskSta
 import AwardsSection from '@/components/AwardsSection';
 import AddAward from '@/components/AddAward';
 import DashboardSection from '@/components/DashboardSection';
-import { Compass, Award as AwardIcon } from 'lucide-react';
+import { Compass, Award as AwardIcon, Settings, Trash } from 'lucide-react';
 import AddBonusAward from '@/components/AddBonusAward';
 import BonusAwardCard, { AVAILABLE_ICONS, IconConfig } from '@/components/BonusAwardCard';
 import { Star } from 'lucide-react';
+import BonusAwardCardSimple from '@/components/BonusAwardCardSimple';
+import ChildAccountCard from '@/components/ChildAccountCard';
+import ChildSelectorModal from '@/components/ChildSelectorModal';
+import CompletedTaskCard from '@/components/CompletedTaskCard';
+import DashboardTabs from '@/components/DashboardTabs';
+import DashboardNav from '@/components/DashboardNav';
+import AwardCard from '@/components/AwardCard';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -89,44 +96,6 @@ function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tas
   );
 }
 
-// Add ChildSelectorModal component
-const ChildSelectorModal = ({ isOpen, onClose, onSelect, children }: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  onSelect: (childId: string) => void; 
-  children: Child[]; 
-}) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded p-6 w-full max-w-md">
-        <h2 className="text-2xl mb-4">Select Child</h2>
-        <div className="space-y-2">
-          {children.map((child) => (
-            <button
-              key={child.id}
-              onClick={() => onSelect(child.id)}
-              className="w-full p-4 text-left hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors duration-200 flex items-center justify-between"
-            >
-              <span className="text-lg">{child.name}</span>
-              <span className="text-sm text-gray-500">{child.points} pts</span>
-            </button>
-          ))}
-        </div>
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition-colors duration-200"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -166,6 +135,9 @@ export default function DashboardPage() {
     // Add new state for child selector
     const [isChildSelectorOpen, setIsChildSelectorOpen] = useState(false);
     const [selectedBonusAwardId, setSelectedBonusAwardId] = useState<string | null>(null);
+
+    // NEW: Add state for regular awards
+    const [awards, setAwards] = useState<any[]>([]);
 
     // Helper function to convert task status from Supabase to QuestCard expected status
     const mapStatus = (status: string) => {
@@ -685,7 +657,8 @@ export default function DashboardPage() {
             .from('tasks')
             .update({
               status: newStatus,
-              next_occurrence: newNextOccurrence.toISOString()
+              next_occurrence: newNextOccurrence.toISOString(),
+              updated_at: new Date().toISOString()
             })
             .eq('id', task.id);
           
@@ -811,17 +784,6 @@ export default function DashboardPage() {
 
     // Compute the child's completed tasks for today
     const completedTasksForChild = selectedChild ? (childTasks[selectedChild.id] || []).filter(task => task.status === 'completed' && isToday(task.completedAt)) : [];
-
-    // Component to display a small completed task card
-    const CompletedTaskCard = ({ task }: { task: Quest }) => {
-      return (
-        <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '8px', textAlign: 'center', backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <AwardIcon size={20} color="#f9c74f" style={{ display: 'block', margin: '0 auto' }} />
-          <div style={{ fontWeight: 'bold', marginTop: '4px', fontSize: '0.8rem' }}>{task.title}</div>
-          <div style={{ fontSize: '0.75rem', color: 'green' }}>approved</div>
-        </div>
-      );
-    };
 
     // Compute active and completed tasks for parent's task view
     const activeTasks = tasks.filter(task => task.status !== 'completed');
@@ -1023,6 +985,88 @@ export default function DashboardPage() {
       fetchBonusAwards();
     };
 
+    // NEW: Function to fetch awards from the 'awards' table
+    const fetchAwards = async () => {
+      try {
+        const { data: awardsData, error: awardsError } = await supabase
+          .from('awards')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (awardsError) {
+          console.error('Error fetching awards:', awardsError);
+          setError('Failed to fetch awards');
+          return;
+        }
+        setAwards(awardsData || []);
+      } catch (err) {
+        console.error('Unexpected error fetching awards:', err);
+        setError('An unexpected error occurred while fetching awards');
+      }
+    };
+
+    // NEW: useEffect to fetch regular awards for parent
+    useEffect(() => {
+      if (dbUser && dbUser.role === 'parent') {
+        fetchAwards();
+      }
+    }, [dbUser]);
+
+    // Add handlers for editing and deleting awards
+    const handleEditAward = async (awardId: string) => {
+      const award = awards.find(a => a.id === awardId);
+      if (!award) return;
+      
+      const newTitle = window.prompt('Enter new title', award.title);
+      if (newTitle === null) return;
+      
+      const newDescription = window.prompt('Enter new description', award.description || '');
+      if (newDescription === null) return;
+      
+      const newPointsStr = window.prompt('Enter new points', award.points.toString());
+      if (newPointsStr === null) return;
+      
+      const newPoints = parseInt(newPointsStr, 10);
+      if (isNaN(newPoints)) {
+        setError('Points must be a valid number');
+        return;
+      }
+
+      try {
+        const { error } = await supabase
+          .from('awards')
+          .update({ 
+            title: newTitle, 
+            description: newDescription, 
+            points: newPoints,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', awardId);
+
+        if (error) throw error;
+        fetchAwards();
+      } catch (err) {
+        console.error('Error updating award:', err);
+        setError('Failed to update award');
+      }
+    };
+
+    const handleDeleteAward = async (awardId: string) => {
+      if (!window.confirm('Are you sure you want to delete this award?')) return;
+      
+      try {
+        const { error } = await supabase
+          .from('awards')
+          .delete()
+          .eq('id', awardId);
+
+        if (error) throw error;
+        fetchAwards();
+      } catch (err) {
+        console.error('Error deleting award:', err);
+        setError('Failed to delete award');
+      }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -1033,24 +1077,7 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-gray-100">
-            <nav className="bg-white shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        <div className="flex items-center">
-                            <h1 className="text-xl font-semibold">Family Dashboard</h1>
-                        </div>
-                        <div className="flex items-center">
-                            <span className="mr-4">Welcome, {user?.user_metadata?.name || 'User'}</span>
-                            <button
-                                onClick={handleSignOut}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                            >
-                                Sign out
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <DashboardNav username={user?.user_metadata?.name || 'User'} onSignOut={handleSignOut} />
 
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 {error && (
@@ -1069,19 +1096,8 @@ export default function DashboardPage() {
 
                 {/* Tabbed Interface for Parent and Child Dashboards */}
                 <div className="mt-4">
-                  <div className="border-b border-gray-300 mb-0">
-                    <div className="flex w-full">
-                      {tabs.map(tab => (
-                        <button 
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`flex-1 text-center py-3 px-6 text-xl ${activeTab === tab.id ? 'bg-gradient-to-r from-blue-400 to-purple-400 text-white shadow-md rounded-t' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-t'}`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
                   <div className="p-4 bg-white shadow">
                     {activeTab === 'parent' && (
                       <>
@@ -1092,23 +1108,17 @@ export default function DashboardPage() {
                             {children && children.length > 0 ? (
                                 <ul className="mb-4">
                                     {children.map((child) => (
-                                        <li key={child.id} className="p-2 border-b flex items-center justify-between">
-                                            {editingChildId === child.id ? (
-                                                <>
-                                                    <input type="text" value={editingChildName} onChange={handleEditChange} className="border rounded p-1 mr-2" />
-                                                    <button onClick={() => handleSaveEdit(child.id)} className="text-green-600 mr-2">Save</button>
-                                                    <button onClick={handleCancelEdit} className="text-red-600">Cancel</button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span>{child.name}</span>
-                                                    <div>
-                                                        <button onClick={() => handleEditClick(child)} className="text-blue-600 mr-2">Edit</button>
-                                                        <button onClick={() => handleDeleteChild(child.id)} className="text-red-600">Delete</button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </li>
+                                        <ChildAccountCard
+                                          key={child.id}
+                                          child={child}
+                                          isEditing={editingChildId === child.id}
+                                          editingChildName={editingChildName}
+                                          onEditChange={handleEditChange}
+                                          onSaveEdit={handleSaveEdit}
+                                          onCancelEdit={handleCancelEdit}
+                                          onEditClick={handleEditClick}
+                                          onDelete={handleDeleteChild}
+                                        />
                                     ))}
                                 </ul>
                             ) : (
@@ -1170,16 +1180,36 @@ export default function DashboardPage() {
                               <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
                           </div>
                           { bonusAwards.filter(b => b.status === 'available').length > 0 ? (
-                            bonusAwards.filter(b => b.status === 'available').map(bonus => (
-                              <BonusAwardCard key={bonus.id} bonusAward={bonus}
-                                 onAward={() => handleAwardBonus(bonus.id)}
-                                 onEdit={() => handleEditBonus(bonus.id)}
-                                 onDelete={() => handleDeleteBonus(bonus.id)} />
-                            ))
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              { bonusAwards.filter(b => b.status === 'available').map(bonus => (
+                                <BonusAwardCardSimple key={bonus.id} bonusAward={bonus} />
+                              ))}
+                            </div>
                           ) : (
                               <p className="mb-4">No bonus awards available.</p>
                           )}
                         </DashboardSection>
+
+                        {/* NEW: Add a new section to display regular awards (rewards) added via AddAward */}
+                        {dbUser && dbUser.role === 'parent' && (
+                          <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
+                            { awards && awards.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                { awards.map((award: any) => (
+                                  <AwardCard 
+                                    key={award.id} 
+                                    award={award} 
+                                    isParentView={true}
+                                    onEdit={handleEditAward}
+                                    onDelete={handleDeleteAward}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mb-4">No awards available.</p>
+                            )}
+                          </DashboardSection>
+                        )}
 
                         {/* Quest History Section */}
                         <section className="mb-8">
@@ -1240,52 +1270,27 @@ export default function DashboardPage() {
                           </DashboardSection>
                         )}
 
-                        {/* NEW: Bonus Awards Sections for Child Dashboard */}
+                        {/* Updated Bonus Awards section in child dashboard view */}
                         {selectedChild && (
-                          <>
-                            <DashboardSection title="Awarded Bonus Awards">
-                              {bonusAwards
-                                .filter(award => award.instances?.some(instance => 
-                                  instance.assigned_child_id === selectedChild.id
-                                ))
-                                .map(bonus => {
-                                  const matchingInstance = bonus.instances?.find(instance => 
-                                    instance.assigned_child_id === selectedChild.id
-                                  );
-                                  const IconComponent = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.icon || Star;
-                                  const iconColor = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.color || '#FFD700';
-                                  
+                          <DashboardSection title="Bonus Awards">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                              {bonusAwards && bonusAwards.map(b => {
+                                  const isAwarded = (b.instances || []).some(instance => instance.assigned_child_id === selectedChild.id);
+                                  const awardedAt = (b.instances || []).find(instance => instance.assigned_child_id === selectedChild.id)?.awarded_at;
+                                  const bonusForChild = {
+                                    id: b.id,
+                                    title: b.title,
+                                    points: b.points,
+                                    status: (isAwarded ? 'awarded' : 'available') as "awarded" | "available",
+                                    awarded_at: awardedAt,
+                                    icon: b.icon
+                                  };
                                   return (
-                                    <div key={matchingInstance?.id || bonus.id} className="p-2 border mb-2 flex items-center">
-                                      <IconComponent size={24} color={iconColor} className="mr-2" />
-                                      <span>{bonus.title} - {bonus.points} pts</span>
-                                      {matchingInstance?.awarded_at && (
-                                        <span className="ml-auto text-sm text-gray-500">
-                                          {new Date(matchingInstance.awarded_at).toLocaleDateString()}
-                                        </span>
-                                      )}
-                                    </div>
+                                    <BonusAwardCardSimple key={b.id} bonusAward={bonusForChild} hideActions={true} />
                                   );
                               })}
-                            </DashboardSection>
-                            <DashboardSection title="Available Bonus Awards">
-                              {bonusAwards
-                                .filter(award => !award.instances?.some(instance => 
-                                  instance.assigned_child_id === selectedChild.id
-                                ))
-                                .map(bonus => {
-                                  const IconComponent = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.icon || Star;
-                                  const iconColor = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonus.icon)?.color || '#FFD700';
-                                  
-                                  return (
-                                    <div key={bonus.id} className="p-2 border mb-2 flex items-center">
-                                      <IconComponent size={24} color={iconColor} className="mr-2" />
-                                      <span>{bonus.title} - {bonus.points} pts</span>
-                                    </div>
-                                  );
-                              })}
-                            </DashboardSection>
-                          </>
+                            </div>
+                          </DashboardSection>
                         )}
 
                         <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
@@ -1303,7 +1308,6 @@ export default function DashboardPage() {
                 </div>
             </main>
 
-            {/* Add ChildSelectorModal before the closing div */}
             <ChildSelectorModal
               isOpen={isChildSelectorOpen}
               onClose={() => {

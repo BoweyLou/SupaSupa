@@ -29,7 +29,10 @@ export async function fetchChildTasks(childId: string) {
 export async function updateTaskStatus(taskId: string, status: string) {
   const { data, error } = await supabase
     .from('tasks')
-    .update({ status })
+    .update({ 
+      status,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', taskId);
   if (error) {
     throw error;

@@ -2,7 +2,7 @@
 // Quest Card component: Displays a task card with title, description, points reward, and role-based actions.
 // This component is based on the QuestCardFeature.md plan and will serve as the UI element for tasks in the dashboard.
 import React, { useState, useEffect } from 'react';
-import { Award, Zap } from 'lucide-react';
+import { Award, Zap, Settings, Trash } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { updateTask, deleteTask } from '@/repositories/tasksRepository';
 
@@ -196,36 +196,11 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
             </>
           )}
           <button
-            style={{
-              flex: 1,
-              fontFamily: 'Poppins, sans-serif',
-              fontSize: '1rem',
-              padding: '8px 12px',
-              backgroundColor: '#4CAF50',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
             onClick={handleOpenEditModal}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            title="Edit"
           >
-            Edit
-          </button>
-          <button
-            style={{
-              flex: 1,
-              fontFamily: 'Poppins, sans-serif',
-              fontSize: '1rem',
-              padding: '8px 12px',
-              backgroundColor: '#f44336',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-            onClick={handleDelete}
-          >
-            Delete
+            <Settings className="w-4 h-4" color="#4CAF50" />
           </button>
         </div>
       )}
@@ -280,6 +255,9 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
                 </button>
                 <button type="submit" disabled={editLoading} style={{ padding:'8px 12px', backgroundColor:'#4CAF50', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer' }}>
                   {editLoading ? 'Saving...' : 'Save'}
+                </button>
+                <button type="button" onClick={handleDelete} style={{ padding:'8px 12px', backgroundColor:'#f44336', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer' }}>
+                  Delete Quest
                 </button>
               </div>
             </form>

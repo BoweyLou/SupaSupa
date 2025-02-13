@@ -6,21 +6,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-
-// Define interface for Award
-export interface Award {
-  id: string;
-  title: string;
-  description: string;
-  points: number;
-  freeze_out_period?: number;
-  is_enabled?: boolean;
-  image_url?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import AwardCard, { Award } from './AwardCard';
+import { Settings, Trash } from 'lucide-react';
 
 // Define a minimal interface for Child
 export interface Child {
@@ -36,45 +25,39 @@ export interface AwardsSectionProps {
   hideHeading?: boolean;
 }
 
-export default function AwardsSection({ childrenAccounts, onRedeemSuccess, hideHeading }: AwardsSectionProps) {
+const AwardsSection: React.FC<AwardsSectionProps> = ({ childrenAccounts, onRedeemSuccess, hideHeading }) => {
   const [awards, setAwards] = useState<Award[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch available awards from the 'awards' table
-  useEffect(() => {
-    async function fetchAwards() {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('awards')
-        .select('*');
-      if (error) {
-        console.error('Error fetching awards:', error);
-        setError('Failed to fetch awards');
-      } else {
-        setAwards(data);
-      }
-      setLoading(false);
+  // Extract fetchAwards function for reusability
+  const fetchAwards = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('awards')
+      .select('*');
+    if (error) {
+      console.error('Error fetching awards:', error);
+      setError('Failed to fetch awards');
+    } else {
+      setAwards(data);
     }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchAwards();
   }, []);
 
-  // Updated handler for redeeming an award for a specific child
+  // Handler for redeeming an award (unchanged)
   async function handleRedeem(award: Award, child: Child) {
-    // Check if child has enough points
     if (child.points < award.points) {
       alert(`${child.name} does not have enough points to redeem this award.`);
       return;
     }
-
-    // NOTE: Freeze out period check should be implemented here.
-    // For now, we are assuming the award is redeemable if it is enabled.
-
-    // Confirm redemption action
     const confirmRedeem = confirm(`Redeem ${award.title} for ${child.name} for ${award.points} points?`);
     if (!confirmRedeem) return;
 
-    // Proceed to redeem: Insert a record into 'user_awards' and deduct points
     const redeemedAt = new Date().toISOString();
     const { error: insertError } = await supabase
       .from('user_awards')
@@ -85,83 +68,122 @@ export default function AwardsSection({ childrenAccounts, onRedeemSuccess, hideH
       return;
     }
 
-    // Deduct the cost from the child's points
     const newPoints = child.points - award.points;
     const { error: updateError } = await supabase
       .from('users')
       .update({ points: newPoints })
       .eq('id', child.id);
     if (updateError) {
-      console.error('Error updating child\'s points:', updateError);
+      console.error("Error updating child's points:", updateError);
       alert('Award redeemed, but failed to update points. Please contact support.');
       return;
     }
 
     alert(`Successfully redeemed ${award.title} for ${child.name}!`);
-    // Trigger callback to update parent's state immediately if provided
     if (onRedeemSuccess) {
       onRedeemSuccess(child.id, newPoints);
     }
-    // Optionally, trigger a state update or callback to refresh child accounts data
+    // Refresh awards list
+    fetchAwards();
   }
 
-  // Local component to render each child's awards section in a collapsible card
-  function AwardChildSection({ child, awards, onRedeem } : { child: Child, awards: Award[], onRedeem: (award: Award, child: Child) => void }) {
-    const [expanded, setExpanded] = useState(true);
-    return (
-      <div className="mb-4">
-        <div className="flex justify-end items-center w-full">
-          <button onClick={() => setExpanded(!expanded)} className="text-blue-600">
-            {expanded ? 'Hide Rewards' : `Show Rewards (${awards.length})`}
-          </button>
-        </div>
-        {expanded && (
-          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {awards.map(award => (
-              <div key={award.id} className="border p-4 rounded shadow">
-                {award.image_url && (
-                  <img src={award.image_url} alt={award.title} className="w-full h-40 object-cover mb-2 rounded" />
-                )}
-                <h4 className="text-lg font-bold">{award.title}</h4>
-                <p className="mb-2">{award.description}</p>
-                <p className="mb-2">Cost: {award.points} points</p>
-                <button
-                  onClick={() => onRedeem(award, child)}
-                  disabled={!(award.is_enabled ?? true) || child.points < award.points}
-                  className={`px-4 py-2 rounded text-white ${!(award.is_enabled ?? true) || child.points < award.points ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-                >
-                  Redeem
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+  // New handler to edit an award
+  const handleEditAward = async (award: Award) => {
+    const newTitle = window.prompt('Enter new title for the award', award.title);
+    if (!newTitle) return;
+    const newPointsStr = window.prompt('Enter new points value', award.points.toString());
+    if (!newPointsStr) return;
+    const newPoints = parseInt(newPointsStr, 10);
+    if (isNaN(newPoints)) {
+      alert('Invalid points value');
+      return;
+    }
+    const { error } = await supabase
+      .from('awards')
+      .update({ title: newTitle, points: newPoints, updated_at: new Date().toISOString() })
+      .eq('id', award.id);
+    if (error) {
+      console.error('Error updating award:', error);
+      alert('Failed to update award');
+    } else {
+      alert('Award updated successfully');
+      fetchAwards();
+    }
+  };
+
+  // New handler to delete an award
+  const handleDeleteAward = async (award: Award) => {
+    if (!window.confirm('Are you sure you want to delete this award?')) return;
+    const { error } = await supabase
+      .from('awards')
+      .delete()
+      .eq('id', award.id);
+    if (error) {
+      console.error('Error deleting award:', error);
+      alert('Failed to delete award');
+    } else {
+      alert('Award deleted successfully');
+      fetchAwards();
+    }
+  };
+
+  const handleClaimAward = (awardId: string) => {
+    // Here you'd typically call a backend function to claim the award
+    // For demo purposes, update the UI state to mark the award as claimed
+    setAwards(prevAwards =>
+      prevAwards.map(award =>
+        award.id === awardId ? { ...award, awarded: true } : award
+      )
     );
-  }
+    // Optionally, call onRedeemSuccess callback if needed
+    // onRedeemSuccess(childId, newPoints);
+  };
 
   return (
-    <div>
-      {!hideHeading && (
-        <h2 className="text-2xl font-semibold mb-4">Rewards Catalog</h2>
-      )}
+    <div style={{ padding: '16px' }}>
+      {!hideHeading && <h1 style={{ fontFamily: 'Poppins, sans-serif' }}>Awards</h1>}
       {error && <div className="mb-4 p-2 bg-red-100 text-red-700">{error}</div>}
       {loading ? (
-        <div>Loading awards...</div>
+        <p>Loading awards...</p>
       ) : (
         <>
-          {childrenAccounts && childrenAccounts.length > 0 ? (
-            childrenAccounts.map(child => (
-              <AwardChildSection key={child.id} child={child} awards={awards} onRedeem={handleRedeem} />
-            ))
-          ) : (
-            <div className="mb-4 text-gray-500">No child accounts available for redemption.</div>
-          )}
-          {awards.length === 0 && (
-            <p className="text-gray-500">No rewards available at this time.</p>
-          )}
+          <div style={{ marginBottom: '32px' }}>
+            <h2 style={{ fontFamily: 'Poppins, sans-serif' }}>Available Awards</h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '16px'
+            }}>
+              {awards.filter(a => !a.awarded).map(award => (
+                <AwardCard 
+                  key={award.id}
+                  award={award}
+                  onClaim={handleClaimAward}
+                  isParentView={false}
+                />
+              ))}
+            </div>
+          </div>
+          <div>
+            <h2 style={{ fontFamily: 'Poppins, sans-serif' }}>Awarded Awards</h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '16px'
+            }}>
+              {awards.filter(a => a.awarded).map(award => (
+                <AwardCard 
+                  key={award.id} 
+                  award={award}
+                  isParentView={false}
+                />
+              ))}
+            </div>
+          </div>
         </>
       )}
     </div>
   );
-} 
+};
+
+export default AwardsSection; 
