@@ -5,27 +5,36 @@
 
 import React from 'react';
 
-export interface ChildSelectorModalProps {
+interface ChildSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (childId: string) => void;
-  children: { id: string; name: string }[];
+  children: any[];
 }
 
 const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({ isOpen, onClose, onSelect, children }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-4 rounded w-full max-w-md">
-        <h2 className="text-2xl mb-4">Select Child</h2>
-        <ul>
-          {children.map(child => (
-            <li key={child.id} className="mb-2">
-              <button className="text-blue-600 underline" onClick={() => onSelect(child.id)}>{child.name}</button>
-            </li>
-          ))}
-        </ul>
-        <button className="mt-4 px-4 py-2 bg-gray-300 rounded" onClick={onClose}>Close</button>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{ background: '#fff', padding: 20, borderRadius: 8 }}>
+        <h2>Select a Child</h2>
+        {children && children.map(child => (
+          <button key={child.id} onClick={() => onSelect(child.id)} style={{ display: 'block', margin: '8px 0' }}>
+            {child.name}
+          </button>
+        ))}
+        <button onClick={onClose}>Close</button>
       </div>
     </div>
   );

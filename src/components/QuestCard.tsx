@@ -104,7 +104,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       borderRadius: '12px',
       padding: '16px',
       margin: '8px 0',
-      background: 'linear-gradient(45deg, #fff9f0, #fff4e6)',
+      background: 'linear-gradient(45deg, #8e44ad 10%, #3498db 90%)',
       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
       transition: 'transform 0.2s ease-in-out'
     }}>
@@ -112,7 +112,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Award size={36} color="#f9c74f" style={{ marginRight: '8px' }} />
-          <h3 style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.5rem', fontWeight: 600, margin: 0 }}>{quest.title}</h3>
+          <h3 style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.5rem', fontWeight: 600, margin: 0, color: '#fff' }}>{quest.title}</h3>
         </div>
         <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.2rem', fontWeight: 'bold', color: '#f9c74f', display: 'flex', alignItems: 'center' }}>
           <Zap size={20} color="#f9c74f" style={{ marginRight: '4px' }} />
@@ -120,20 +120,20 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
         </span>
       </div>
       {/* Content: Description and Frequency/Status/Assignment based on userRole */}
-      <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1rem', color: '#333', margin: '4px 0' }}>{quest.description}</p>
+      <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1rem', color: '#fff', margin: '4px 0' }}>{quest.description}</p>
       {userRole === 'parent' && (
         <>
           {quest.frequency && (
-            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}>
+            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#fff', margin: '4px 0' }}>
               <strong>Frequency:</strong> {quest.frequency}
             </p>
           )}
-          <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}>
+          <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#fff', margin: '4px 0' }}>
             <strong>Status:</strong> {quest.status}
           </p>
           {quest.assignedChildId && (
-            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#555', margin: '4px 0' }}>
-              <strong>Assigned to:</strong> {childNameMapping ? (childNameMapping[quest.assignedChildId] || quest.assignedChildId) : quest.assignedChildId}
+            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#fff', margin: '4px 0' }}>
+              <strong>Assigned to:</strong> {childNameMapping && childNameMapping[quest.assignedChildId] ? childNameMapping[quest.assignedChildId] : 'Unknown'}
             </p>
           )}
         </>
@@ -146,7 +146,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
             fontFamily: 'Poppins, sans-serif',
             fontSize: '1rem',
             padding: '8px 12px',
-            backgroundColor: '#f9c74f',
+            background: 'linear-gradient(45deg, #3b82f6, #2563eb)',
+            boxShadow: '0 0 0 1px rgba(255,255,255,0.4)',
             color: '#fff',
             border: 'none',
             borderRadius: '4px',
@@ -167,7 +168,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
                   fontFamily: 'Poppins, sans-serif',
                   fontSize: '1rem',
                   padding: '8px 12px',
-                  backgroundColor: '#f9c74f',
+                  background: 'linear-gradient(45deg, #3b82f6, #2563eb)',
+                  boxShadow: '0 0 0 1px rgba(255,255,255,0.4)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '4px',

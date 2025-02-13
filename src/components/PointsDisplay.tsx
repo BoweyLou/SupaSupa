@@ -65,9 +65,6 @@ export default function PointsDisplay({ children, totalPoints = 0, showFamilyPoi
                 <div className="mt-2 flex justify-center">
                   {renderStars(child.points)}
                 </div>
-                <div className="absolute top-2 right-2 text-xs flex items-center">
-                  <Zap className="inline-block mr-1" /> Level {calculateLevel(child.points)}
-                </div>
               </div>
             ))}
           </div>

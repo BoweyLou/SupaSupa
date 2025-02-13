@@ -1182,7 +1182,13 @@ export default function DashboardPage() {
                           { bonusAwards.filter(b => b.status === 'available').length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                               { bonusAwards.filter(b => b.status === 'available').map(bonus => (
-                                <BonusAwardCardSimple key={bonus.id} bonusAward={bonus} />
+                                <BonusAwardCard 
+                                  key={bonus.id} 
+                                  bonusAward={bonus}
+                                  onAward={() => handleAwardBonus(bonus.id)}
+                                  onEdit={() => handleEditBonus(bonus.id)}
+                                  onDelete={() => handleDeleteBonus(bonus.id)}
+                                />
                               ))}
                             </div>
                           ) : (
