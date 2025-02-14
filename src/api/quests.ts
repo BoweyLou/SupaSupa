@@ -1,4 +1,4 @@
-import { supabase } from '../supabaseClient';
+import { supabase } from '@/lib/supabase';
 import { Quest } from '../components/QuestCard';
 
 // Interface matching our tasks table schema
