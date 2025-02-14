@@ -10,14 +10,8 @@ const Awards: React.FC = () => {
   useEffect(() => {
     // TODO: Replace with actual API call to fetch awards from the backend (e.g., via supabase)
     async function fetchAwards() {
-      // Dummy data for demonstration
-      const dummyAwards: Award[] = [
-        { id: '1', title: 'Best Effort', description: 'Awarded for trying hard!', points: 10, awarded: false },
-        { id: '2', title: 'Super Star', description: 'Awarded for extraordinary performance!', points: 20, awarded: true },
-        { id: '3', title: 'Champion', description: 'Awarded for beating the level!', points: 15, awarded: false },
-        { id: '4', title: 'MVP', description: 'Awarded for most valuable performance!', points: 25, awarded: true }
-      ];
-      setAwards(dummyAwards);
+      // Remove dummy data and initialize with an empty array
+      setAwards([]);
       setLoading(false);
     }
     fetchAwards();
