@@ -11,6 +11,7 @@ export interface Award {
   description?: string;
   points: number;
   awarded: boolean; // indicates whether the award has been claimed
+  familyId: string; // new property to associate an award with a family
 }
 
 export interface AwardCardProps {
@@ -23,9 +24,16 @@ export interface AwardCardProps {
   onEdit?: (awardId: string, updatedAward: { title: string, description?: string, points: number }) => void;
   onDelete?: (awardId: string) => void;
   hideActions?: boolean;
+  currentFamilyId?: string; // current user's family id
 }
 
-const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, isParentView = false, onEdit, onDelete, hideActions = false }) => {
+const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, isParentView = false, onEdit, onDelete, hideActions = false }) => {
+  // Check if the award belongs to the current family
+  if (currentFamilyId && award.familyId !== currentFamilyId) {
+    // If the award's family id does not match the logged in user's family id, do not render the award
+    return null;
+  }
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(award.title);
   const [editDescription, setEditDescription] = useState(award.description || '');

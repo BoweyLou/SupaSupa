@@ -9,6 +9,7 @@
 | awards                | title             | text                     |
 | awards                | description       | text                     |
 | awards                | points            | integer                  |
+| awards                | family_id         | uuid                     |
 | awards                | created_at        | timestamp with time zone |
 | awards                | updated_at        | timestamp with time zone |
 | bonus_award_instances | id                | uuid                     |
@@ -150,6 +151,7 @@ The database consists of the following tables:
 - **title**: text, not null.
 - **description**: text, optional.
 - **points**: integer, not null.
+- **family_id**: uuid, not null; identifier for the family associated with the award.
 - **created_at**: timestamp with time zone, not null, defaults to now().
 - **updated_at**: timestamp with time zone, not null, defaults to now().
 
