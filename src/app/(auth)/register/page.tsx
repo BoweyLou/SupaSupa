@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function RegisterPage() {
-    const router = useRouter();
+    const router: { push: (url: string) => void } = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,45 +21,39 @@ export default function RegisterPage() {
         const name = formData.get('name') as string;
 
         try {
-            const { data, error } = await supabase.auth.signUp({
+            const { data, error }: { data: { user: { id: string } | null; session: unknown } | null, error: Error | null } = await supabase.auth.signUp({
                 email,
                 password,
-                options: {
-                    data: {
-                        name,
-                    },
-                },
+                options: { data: { name } },
             });
 
-            if (error) throw error;
+            if (error || !data || !data.user) {
+                throw error ?? new Error('User creation failed');
+            }
 
             // Create a new family for the parent user
-            if (data.user) {
-                const { data: familyData, error: familyError } = await supabase
+            {
+                const { data: familyData, error: familyError }: { data: { family_id: string } | null, error: Error | null } = await supabase
                     .from('families')
-                    .insert([
-                        {
-                            name: `${name}'s Family`,
-                            owner_id: data.user.id
-                        }
-                    ])
+                    .insert([{ name: `${name}'s Family`, owner_id: data.user.id }])
                     .select('*')
                     .single();
-
-                if (familyError) throw familyError;
-
-                // Update parent's record with the newly created family_id
-                const { error: updateError } = await supabase
+                if (familyError || !familyData) throw familyError ?? new Error('Family creation failed');
+                const { error: updateError }: { error: Error | null } = await supabase
                     .from('users')
                     .update({ family_id: familyData.family_id })
                     .eq('id', data.user.id);
-
                 if (updateError) throw updateError;
             }
 
             router.push('/dashboard');
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            console.error('Register error:', err);
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred');
+            }
         } finally {
             setLoading(false);
         }

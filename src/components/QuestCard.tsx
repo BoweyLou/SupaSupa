@@ -1,9 +1,8 @@
 // src/components/QuestCard.tsx
 // Quest Card component: Displays a task card with title, description, points reward, and role-based actions.
 // This component is based on the QuestCardFeature.md plan and will serve as the UI element for tasks in the dashboard.
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Award, Zap, Settings, Trash } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { updateTask, deleteTask } from '@/repositories/tasksRepository';
 
 export interface Quest {
@@ -203,6 +202,13 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
             title="Edit"
           >
             <Settings className="w-4 h-4" color="#4CAF50" />
+          </button>
+          <button
+            onClick={handleDelete}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            title="Delete"
+          >
+            <Trash className="w-4 h-4" color="#f44336" />
           </button>
         </div>
       )}

@@ -4,15 +4,16 @@
 "use client";
 
 import React from 'react';
+import { Child } from './ChildAccountCard';
 
 interface ChildSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (childId: string) => void;
-  children: any[];
+  childAccounts: Child[];
 }
 
-const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({ isOpen, onClose, onSelect, children }) => {
+const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({ isOpen, onClose, onSelect, childAccounts }) => {
   if (!isOpen) return null;
   return (
     <div style={{
@@ -29,7 +30,7 @@ const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({ isOpen, onClose
     }}>
       <div style={{ background: '#fff', padding: 20, borderRadius: 8 }}>
         <h2>Select a Child</h2>
-        {children && children.map(child => (
+        {childAccounts && childAccounts.map(child => (
           <button key={child.id} onClick={() => onSelect(child.id)} style={{ display: 'block', margin: '8px 0' }}>
             {child.name}
           </button>

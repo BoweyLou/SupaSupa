@@ -4,7 +4,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { addTask } from '@/repositories/tasksRepository';
 import { Plus } from 'lucide-react';
 
@@ -17,11 +16,11 @@ export interface Child {
 // Props for the AddTask component
 export interface AddTaskProps {
   parentId: string;              // The parent's user ID to set as the creator of the task
-  children: Child[];             // List of child accounts available for assignment
+  availableChildren: Child[];    // List of child accounts available for assignment
   onTaskAdded?: () => void;      // Callback to refresh tasks after adding a new quest
 }
 
-const AddTask: React.FC<AddTaskProps> = ({ parentId, children, onTaskAdded }) => {
+const AddTask: React.FC<AddTaskProps> = ({ parentId, availableChildren, onTaskAdded }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -75,8 +74,12 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, children, onTaskAdded }) =>
       setRewardPoints("");
       setFrequency("daily");
       setAssignedChild("");
-    } catch (insertError: any) {
-      setError(insertError.message);
+    } catch (insertError: unknown) {
+      if (insertError instanceof Error) {
+        setError(insertError.message);
+      } else {
+        setError('An unexpected error occurred.');
+      }
     }
     setLoading(false);
   };
@@ -151,7 +154,7 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, children, onTaskAdded }) =>
                   required
                 >
                   <option value="">Select Child</option>
-                  {children.map(child => (
+                  {availableChildren.map(child => (
                     <option key={child.id} value={child.id}>{child.name}</option>
                   ))}
                 </select>

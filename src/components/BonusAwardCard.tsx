@@ -21,8 +21,7 @@ import {
   Palette,
   Music4,
   Bike,
-  Settings,
-  Trash
+  Settings
 } from 'lucide-react';
 
 // Define available icons with their colors - keep in sync with AddBonusAward
@@ -70,22 +69,19 @@ interface BonusAwardCardProps {
 }
 
 const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, onEdit, onDelete }) => {
-  // Find the icon configuration based on the stored name
-  const iconConfig = AVAILABLE_ICONS.find(i => i.name === bonusAward.icon) || AVAILABLE_ICONS[0];
-  const IconComponent = iconConfig?.icon || Star; // Fallback to Star if icon not found
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState(bonusAward ? bonusAward.title : '');
+  const [editPoints, setEditPoints] = useState(bonusAward ? bonusAward.points.toString() : '');
+  const [editError, setEditError] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
-  // Prevent rendering if essential data is missing
   if (!bonusAward || !bonusAward.id) {
     console.error('Invalid bonus award data:', bonusAward);
     return null;
   }
 
-  // State for edit modal
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState(bonusAward.title);
-  const [editPoints, setEditPoints] = useState(bonusAward.points.toString());
-  const [editError, setEditError] = useState('');
-  const [editLoading, setEditLoading] = useState(false);
+  const iconConfig = AVAILABLE_ICONS.find(i => i.name === bonusAward.icon) || AVAILABLE_ICONS[0];
+  const IconComponent = iconConfig?.icon || Star;
 
   const handleOpenEditModal = () => {
     setEditTitle(bonusAward.title);

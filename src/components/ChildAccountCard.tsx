@@ -3,20 +3,24 @@
 import React from 'react';
 import { Settings, Trash } from 'lucide-react';
 
-// Define interface for ChildAccountCard props
+export interface Child {
+  id: string;
+  name: string;
+  points: number;
+  family_id: string;
+  role: 'child';
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface ChildAccountCardProps {
-  child: {
-    id: string;
-    name: string;
-    points?: number;
-    [key: string]: any;
-  };
+  child: Child;
   isEditing: boolean;
   editingChildName: string;
   onEditChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSaveEdit: (childId: string) => void;
   onCancelEdit: () => void;
-  onEditClick: (child: any) => void;
+  onEditClick: (child: Child) => void;
   onDelete: (childId: string) => void;
 }
 

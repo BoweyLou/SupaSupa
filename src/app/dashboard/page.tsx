@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import QuestCard, { Quest } from '@/components/QuestCard';
 import AddTask from '@/components/AddTask';
@@ -9,17 +9,17 @@ import { fetchParentTasks, fetchChildTasks as repoFetchChildTasks, updateTaskSta
 import AwardsSection from '@/components/AwardsSection';
 import AddAward from '@/components/AddAward';
 import DashboardSection from '@/components/DashboardSection';
-import { Compass, Award as AwardIcon, Settings, Trash } from 'lucide-react';
+import { Compass, Award as AwardIcon } from 'lucide-react';
 import AddBonusAward from '@/components/AddBonusAward';
-import BonusAwardCard, { AVAILABLE_ICONS, IconConfig } from '@/components/BonusAwardCard';
-import { Star } from 'lucide-react';
+import BonusAwardCard from '@/components/BonusAwardCard';
 import BonusAwardCardSimple from '@/components/BonusAwardCardSimple';
 import ChildAccountCard from '@/components/ChildAccountCard';
 import ChildSelectorModal from '@/components/ChildSelectorModal';
 import CompletedTaskCard from '@/components/CompletedTaskCard';
 import DashboardTabs from '@/components/DashboardTabs';
 import DashboardNav from '@/components/DashboardNav';
-import AwardCard from '@/components/AwardCard';
+import AwardCard, { Award } from '@/components/AwardCard';
+import { Session } from '@supabase/supabase-js';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -39,7 +39,7 @@ interface DBUser {
   family_id: string;
   role: string;
   points: number;
-  user_metadata?: { [key: string]: any };
+  user_metadata?: Record<string, unknown>;
 }
 
 // NEW: Define BonusAward interface
@@ -66,11 +66,25 @@ interface BonusAwardInstance {
   awarded_at: string;
 }
 
+// NEW: Add TaskResponse interface
+interface TaskResponse {
+  id: string;
+  title: string;
+  description: string;
+  reward_points: number;
+  frequency: string;
+  status: string;
+  assigned_child_id?: string;
+  updated_at: string;
+  next_occurrence?: string;
+}
+
 // ChildDashboardSection: A reusable component to display tasks for a child account
 function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tasks: Quest[]; onComplete: (questId: string) => void; }) {
   const [expanded, setExpanded] = useState(true);
   return (
     <div>
+      <h3 className="text-lg font-bold mb-2">Dashboard for {child.name}</h3>
       <div className="flex justify-end items-center w-full">
         <button onClick={() => setExpanded(!expanded)} className="text-blue-600">
           {expanded ? 'Hide Tasks' : `Show Tasks (${tasks.length})`}
@@ -83,7 +97,7 @@ function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tas
               <QuestCard 
                 quest={task} 
                 userRole="child" 
-                onComplete={onComplete}
+                onComplete={onComplete} 
               />
             </li>
           ))}
@@ -96,8 +110,14 @@ function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tas
   );
 }
 
+interface User {
+  id: string;
+  email: string;
+  user_metadata?: Record<string, unknown>;
+}
+
 export default function DashboardPage() {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -120,14 +140,9 @@ export default function DashboardPage() {
     // New state for child tasks mapping child id to its tasks
     const [childTasks, setChildTasks] = useState<{ [key: string]: Quest[] }>({});
 
-    const [totalPoints, setTotalPoints] = useState(0);
-
-    // New state for parent's tasks collapse
-    const [parentExpanded, setParentExpanded] = useState(false);
-
     // New state for active tab in the tabbed interface.
     // For a parent, 'parent' will refer to the parent's dashboard; other tabs will have child ids.
-    const [activeTab, setActiveTab] = useState<string>('');
+    const [activeTab, setActiveTab] = useState<string>('parent');
 
     // NEW: State for Bonus Awards
     const [bonusAwards, setBonusAwards] = useState<BonusAward[]>([]);
@@ -137,14 +152,13 @@ export default function DashboardPage() {
     const [selectedBonusAwardId, setSelectedBonusAwardId] = useState<string | null>(null);
 
     // NEW: Add state for regular awards
-    const [awards, setAwards] = useState<any[]>([]);
+    const [awards, setAwards] = useState<Award[]>([]);
 
-    // Helper function to convert task status from Supabase to QuestCard expected status
-    const mapStatus = (status: string) => {
+    const mapStatus = useCallback((status: string): string => {
       if (status === 'pending approval') return 'pending';
       if (status === 'rejected') return 'failed';
       return status as Quest['status'];
-    };
+    }, []);
 
     // Helper function to check if a given date string represents a date that is today
     const isToday = (dateString: string | undefined) => {
@@ -161,15 +175,15 @@ export default function DashboardPage() {
     useEffect(() => {
         const checkUser = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabase.auth.getSession() as { data: { session: Session | null } };
                 
                 if (!session?.user) {
                     window.location.href = '/login';
                     return;
                 }
 
-                setUser(session.user);
-            } catch (error) {
+                setUser(session.user as User);
+            } catch (error: unknown) {
                 console.error('Error checking auth status:', error);
                 window.location.href = '/login';
             } finally {
@@ -179,12 +193,12 @@ export default function DashboardPage() {
 
         checkUser();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(( _event: string, session: Session | null ) => {
             if (!session) {
                 window.location.href = '/login';
                 return;
             }
-            setUser(session.user);
+            setUser(session.user as User);
             setLoading(false);
         });
 
@@ -262,7 +276,7 @@ export default function DashboardPage() {
             console.log('Raw children data from database:', JSON.stringify(childrenData, null, 2));
             setChildren(childrenData as Child[]);
             console.log('Updated children data:', childrenData);
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error in fetchChildren:', err);
             setError('An unexpected error occurred while fetching children');
         }
@@ -338,7 +352,7 @@ export default function DashboardPage() {
     }, [familyId]);
 
     // Function to fetch parent's tasks (quests)
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
       if (!dbUser) return;
       try {
         const data = await fetchParentTasks(dbUser.id);
@@ -348,13 +362,13 @@ export default function DashboardPage() {
           setTasks([]);
           return;
         }
-        const quests = data.map((task: any) => ({
+        const quests = (data as TaskResponse[]).map((task: TaskResponse) => ({
           id: task.id,
           title: task.title,
           description: task.description,
           points: task.reward_points,
           frequency: task.frequency,
-          status: mapStatus(task.status),
+          status: mapStatus(task.status) as Quest['status'],
           assignedChildId: task.assigned_child_id,
           completedAt: task.updated_at
         }));
@@ -363,21 +377,21 @@ export default function DashboardPage() {
       } catch (error) {
         console.error('Error fetching tasks:', error);
       }
-    };
+    }, [dbUser, mapStatus]);
 
     // Function to fetch tasks for each child
-    const fetchChildTasks = async () => {
-      let updatedChildTasks: { [key: string]: Quest[] } = {};
+    const fetchChildTasks = useCallback(async () => {
+      const updatedChildTasks: { [key: string]: Quest[] } = {};
       for (const child of children) {
         try {
           const data = await repoFetchChildTasks(child.id);
-          updatedChildTasks[child.id] = data.map((task: any) => ({
+          updatedChildTasks[child.id] = (data as TaskResponse[]).map((task: TaskResponse) => ({
             id: task.id,
             title: task.title,
             description: task.description,
             points: task.reward_points,
             frequency: task.frequency,
-            status: mapStatus(task.status),
+            status: mapStatus(task.status) as Quest['status'],
             completedAt: task.updated_at
           }));
         } catch (error) {
@@ -385,7 +399,7 @@ export default function DashboardPage() {
         }
       }
       setChildTasks(updatedChildTasks);
-    };
+    }, [children, mapStatus]);
 
     // Fetch parent's tasks once the current dbUser is available
     useEffect(() => {
@@ -393,22 +407,14 @@ export default function DashboardPage() {
         console.log('dbUser available, fetching tasks...');
         fetchTasks();
       }
-    }, [dbUser]);
+    }, [dbUser, fetchTasks]);
 
     // Fetch child tasks whenever children list is updated
     useEffect(() => {
       if (children && children.length > 0) {
          fetchChildTasks();
       }
-    }, [children]);
-
-    // Add useEffect to calculate total points whenever children change
-    useEffect(() => {
-        if (children) {
-            const total = children.reduce((sum, child) => sum + (child.points || 0), 0);
-            setTotalPoints(total);
-        }
-    }, [children]);
+    }, [children, fetchChildTasks]);
 
     const handleSignOut = async () => {
         try {
@@ -475,7 +481,7 @@ export default function DashboardPage() {
                 // Refresh children data to ensure we have the latest
                 await fetchChildren(familyId);
             }
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error in handleAddChild:', err);
             setError('An unexpected error occurred while adding child');
         } finally {
@@ -510,7 +516,7 @@ export default function DashboardPage() {
             await fetchChildren(familyId);
             setEditingChildId(null);
             setEditingChildName('');
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error in handleSaveEdit:', err);
             setError('Failed to update child account.');
         }
@@ -537,7 +543,7 @@ export default function DashboardPage() {
                 return;
             }
             await fetchChildren(familyId);
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error in handleDeleteChild:', err);
             setError('Failed to delete child account.');
         }
@@ -605,7 +611,7 @@ export default function DashboardPage() {
         if (children && children.length > 0) {
           fetchChildTasks();
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error in handleTaskCompletion:', err);
         setError('Failed to complete task');
       }
@@ -637,7 +643,7 @@ export default function DashboardPage() {
         return;
       }
 
-      const updates = dueTasks.map(async (task: any) => {
+      const updates = dueTasks.map(async (task: TaskResponse) => {
         let newNextOccurrence;
         if (task.frequency === 'daily') {
           newNextOccurrence = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -669,8 +675,8 @@ export default function DashboardPage() {
 
           console.log(`Updated task ${task.id} successfully:`, response);
           return response;
-        } catch (error: any) {
-          console.error(`Error updating task ${task.id}:`, error);
+        } catch (error: unknown) {
+          console.error(`Error updating task ${task.id}:`, error instanceof Error ? error.message : error);
           throw error;
         }
       });
@@ -678,7 +684,7 @@ export default function DashboardPage() {
       try {
         await Promise.all(updates);
         alert('Recurring tasks have been reset.');
-      } catch (updateError) {
+      } catch (updateError: unknown) {
         console.error('Error during task updates:', updateError);
         alert('An error occurred while updating tasks. Check console for details.');
       }
@@ -754,7 +760,7 @@ export default function DashboardPage() {
                 setActiveTab('parent');
             }
          } else {
-            setActiveTab(dbUser.id);
+            setActiveTab(dbUser.role === 'parent' ? 'parent' : dbUser.id);
          }
       }
     }, [dbUser, activeTab, children]);
@@ -766,7 +772,7 @@ export default function DashboardPage() {
          const childTabs = children.map(child => ({ id: child.id, label: child.name }));
          return [...childTabs, { id: 'parent', label: 'Parent Dashboard' }];
       } else {
-         return [{ id: dbUser.id, label: dbUser.user_metadata?.name || 'My Dashboard' }];
+         return [{ id: dbUser.id, label: typeof dbUser.user_metadata?.name === 'string' ? dbUser.user_metadata.name : 'My Dashboard' }];
       }
     }, [dbUser, children]);
 
@@ -839,7 +845,7 @@ export default function DashboardPage() {
         }
 
         setBonusAwards(processedAwards);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Unexpected error fetching bonus awards:', err);
         setError('An unexpected error occurred while fetching bonus awards');
       }
@@ -874,7 +880,7 @@ export default function DashboardPage() {
           setSelectedBonusAwardId(bonusAwardId);
           setIsChildSelectorOpen(true);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error in handleAwardBonus:', err);
         setError('Failed to process bonus award');
       }
@@ -936,7 +942,7 @@ export default function DashboardPage() {
         await fetchBonusAwards();
         setIsChildSelectorOpen(false);
         setSelectedBonusAwardId(null);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error in awardBonusToChild:', err);
         setError('Failed to process bonus award');
       }
@@ -998,7 +1004,7 @@ export default function DashboardPage() {
           return;
         }
         setAwards(awardsData || []);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Unexpected error fetching awards:', err);
         setError('An unexpected error occurred while fetching awards');
       }
@@ -1044,7 +1050,7 @@ export default function DashboardPage() {
 
         if (error) throw error;
         fetchAwards();
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error updating award:', err);
         setError('Failed to update award');
       }
@@ -1061,7 +1067,7 @@ export default function DashboardPage() {
 
         if (error) throw error;
         fetchAwards();
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error deleting award:', err);
         setError('Failed to delete award');
       }
@@ -1077,7 +1083,7 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-gray-100">
-            <DashboardNav username={user?.user_metadata?.name || 'User'} onSignOut={handleSignOut} />
+            <DashboardNav username={typeof user?.user_metadata?.name === 'string' ? user.user_metadata.name : 'User'} onSignOut={handleSignOut} />
 
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 {error && (
@@ -1089,8 +1095,7 @@ export default function DashboardPage() {
                 {/* Display total family points at the top */}
                 {children && (
                     <PointsDisplay 
-                        children={children} 
-                        totalPoints={totalPoints}
+                        childAccounts={children}
                     />
                 )}
 
@@ -1156,10 +1161,14 @@ export default function DashboardPage() {
                         <DashboardSection title="Tasks" toggleable={true} defaultExpanded={true}>
                             {dbUser && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <AddTask parentId={dbUser.id} children={children} onTaskAdded={() => {
-                                        fetchTasks();
-                                        fetchChildTasks();
-                                    }} />
+                                    <AddTask 
+                                        parentId={dbUser.id} 
+                                        availableChildren={children} 
+                                        onTaskAdded={() => {
+                                            fetchTasks();
+                                            fetchChildTasks();
+                                        }} 
+                                    />
                                     <AddAward onAwardAdded={() => {
                                         // Optionally refresh awards if needed
                                     }} />
@@ -1167,7 +1176,17 @@ export default function DashboardPage() {
                             )}
                             {activeTasks.length > 0 ? (
                                 activeTasks.map((task: Quest) => (
-                                    <QuestCard key={task.id} quest={task} userRole={user?.user_metadata?.role || 'parent'} onComplete={handleTaskCompletion} />
+                                    <QuestCard 
+                                        key={task.id} 
+                                        quest={task} 
+                                        userRole={
+                                            typeof user?.user_metadata?.role === 'string' &&
+                                            (user.user_metadata.role === 'child' || user.user_metadata.role === 'parent')
+                                                ? (user.user_metadata.role as "child" | "parent")
+                                                : 'parent'
+                                        } 
+                                        onComplete={handleTaskCompletion} 
+                                    />
                                 ))
                             ) : (
                                 <p className="mb-4">No tasks found.</p>
@@ -1201,7 +1220,7 @@ export default function DashboardPage() {
                           <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
                             { awards && awards.length > 0 ? (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                { awards.map((award: any) => (
+                                { awards.map((award: Award) => (
                                   <AwardCard 
                                     key={award.id} 
                                     award={award} 
@@ -1232,7 +1251,7 @@ export default function DashboardPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {completedTasks.map((task: any) => (
+                                        {completedTasks.map((task: Quest) => (
                                             <tr key={task.id}>
                                                 <td className="px-4 py-2 border">{task.title}</td>
                                                 <td className="px-4 py-2 border">{task.description}</td>
@@ -1253,7 +1272,7 @@ export default function DashboardPage() {
                     {activeTab !== 'parent' && (
                       <>
                         {selectedChild && (
-                          <PointsDisplay children={[selectedChild]} showFamilyPoints={false} />
+                          <PointsDisplay showFamilyPoints={false} childAccounts={[selectedChild]} />
                         )}
                         <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>{selectedChild ? (
                             <ChildDashboardSection
@@ -1303,8 +1322,8 @@ export default function DashboardPage() {
                           {selectedChild && (
                             <AwardsSection 
                               hideHeading={true}
-                              childrenAccounts={[selectedChild]} 
-                              onRedeemSuccess={(childId, newPoints) => updateChildPoints(childId, newPoints)} 
+                              childrenAccounts={[selectedChild]}
+                              onRedeemSuccess={(childId: string, newPoints: number) => updateChildPoints(childId, newPoints)} 
                             />
                           )}
                         </DashboardSection>
@@ -1321,7 +1340,7 @@ export default function DashboardPage() {
                 setSelectedBonusAwardId(null);
               }}
               onSelect={handleChildSelect}
-              children={children}
+              childAccounts={children}
             />
         </div>
     );

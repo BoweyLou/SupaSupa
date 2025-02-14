@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -30,9 +28,13 @@ export default function LoginPage() {
             if (data.session) {
                 window.location.href = '/dashboard';
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Login error:', err);
-            setError(err.message);
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred');
+            }
         } finally {
             setLoading(false);
         }
@@ -98,7 +100,7 @@ export default function LoginPage() {
                             href="/register"
                             className="font-medium text-indigo-600 hover:text-indigo-500"
                         >
-                            Don't have an account? Sign up
+                            Don&apos;t have an account? Sign up
                         </Link>
                     </div>
                 </form>

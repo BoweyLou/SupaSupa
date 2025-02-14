@@ -90,7 +90,7 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
       setLoading(true);
 
       // Create the bonus award
-      const { data, error: insertError } = await supabase
+      const { error } = await supabase
         .from('bonus_awards')
         .insert([
           {
@@ -105,9 +105,9 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
         .select()
         .single();
 
-      if (insertError) {
-        console.error('Error creating bonus award:', insertError);
-        setError(insertError.message || 'Failed to create bonus award');
+      if (error) {
+        console.error('Error creating bonus award:', error);
+        setError(error.message || 'Failed to create bonus award');
         return;
       }
 

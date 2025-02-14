@@ -22,9 +22,10 @@ export interface AwardCardProps {
   // Callbacks for admin actions (parent view)
   onEdit?: (awardId: string, updatedAward: { title: string, description?: string, points: number }) => void;
   onDelete?: (awardId: string) => void;
+  hideActions?: boolean;
 }
 
-const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, isParentView = false, onEdit, onDelete }) => {
+const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, isParentView = false, onEdit, onDelete, hideActions = false }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(award.title);
   const [editDescription, setEditDescription] = useState(award.description || '');
@@ -58,9 +59,8 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, isParentView = fa
         <div className="text-sm font-medium text-gray-600">{award.points} pts</div>
       </div>
       {award.description && <p className="text-sm text-gray-700">{award.description}</p>}
-      { !award.awarded && (
+      { !award.awarded && !hideActions && (
         isParentView ? (
-          // In parent view, show Edit and Delete buttons if callbacks are provided
           onEdit && onDelete && (
             <div className="mt-2 flex space-x-2">
               <button
@@ -78,7 +78,6 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, isParentView = fa
             </div>
           )
         ) : (
-          // In child view, show Claim Award button
           onClaim && (
             <button
               className="mt-2 w-full py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"

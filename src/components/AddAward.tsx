@@ -44,9 +44,13 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded }) => {
         setCostPoints('');
         setIsModalOpen(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('An unexpected error occurred.');
-      console.error(err);
+      if (err instanceof Error) {
+        console.error(err.message);
+      } else {
+        console.error(err);
+      }
     } finally {
       setLoading(false);
     }

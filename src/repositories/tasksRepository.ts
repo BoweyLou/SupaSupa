@@ -4,7 +4,20 @@
 
 import { supabase } from '@/lib/supabase';
 
-export async function fetchParentTasks(createdBy: string) {
+// Add TaskResponse interface
+export interface TaskResponse {
+  id: string;
+  title: string;
+  description: string;
+  reward_points: number;
+  frequency: string;
+  status: string;
+  assigned_child_id?: string;
+  updated_at: string;
+  next_occurrence?: string;
+}
+
+export async function fetchParentTasks(createdBy: string): Promise<TaskResponse[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
@@ -12,10 +25,11 @@ export async function fetchParentTasks(createdBy: string) {
   if (error) {
     throw error;
   }
-  return data;
+  if (!data) return [];
+  return data as TaskResponse[];
 }
 
-export async function fetchChildTasks(childId: string) {
+export async function fetchChildTasks(childId: string): Promise<TaskResponse[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
@@ -23,10 +37,11 @@ export async function fetchChildTasks(childId: string) {
   if (error) {
     throw error;
   }
-  return data;
+  if (!data) return [];
+  return data as TaskResponse[];
 }
 
-export async function updateTaskStatus(taskId: string, status: string) {
+export async function updateTaskStatus(taskId: string, status: string): Promise<TaskResponse[]> {
   const { data, error } = await supabase
     .from('tasks')
     .update({ 
@@ -37,10 +52,11 @@ export async function updateTaskStatus(taskId: string, status: string) {
   if (error) {
     throw error;
   }
-  return data;
+  if (!data) return [];
+  return data as TaskResponse[];
 }
 
-export async function updateTask(taskId: string, payload: Record<string, any>) {
+export async function updateTask(taskId: string, payload: Partial<TaskResponse>): Promise<TaskResponse[]> {
   const { data, error } = await supabase
     .from('tasks')
     .update(payload)
@@ -48,10 +64,11 @@ export async function updateTask(taskId: string, payload: Record<string, any>) {
   if (error) {
     throw error;
   }
-  return data;
+  if (!data) return [];
+  return data as TaskResponse[];
 }
 
-export async function deleteTask(taskId: string) {
+export async function deleteTask(taskId: string): Promise<TaskResponse[]> {
   const { data, error } = await supabase
     .from('tasks')
     .delete()
@@ -59,10 +76,11 @@ export async function deleteTask(taskId: string) {
   if (error) {
     throw error;
   }
-  return data;
+  if (!data) return [];
+  return data as TaskResponse[];
 }
 
-export async function addTask(payload: Record<string, any>) {
+export async function addTask(payload: Partial<TaskResponse> & { created_by: string; assigned_child_id: string; status: string }): Promise<TaskResponse> {
   const { data, error } = await supabase
     .from('tasks')
     .insert([payload])
@@ -71,11 +89,12 @@ export async function addTask(payload: Record<string, any>) {
   if (error) {
     throw error;
   }
-  return data;
+  if (!data) { throw new Error('No data returned in addTask'); }
+  return data as TaskResponse;
 }
 
 // NEW FUNCTION: fetchTask
-export async function fetchTask(taskId: string) {
+export async function fetchTask(taskId: string): Promise<TaskResponse> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
@@ -84,5 +103,6 @@ export async function fetchTask(taskId: string) {
   if (error) {
     throw error;
   }
-  return data;
+  if (!data) { throw new Error('No data returned in fetchTask'); }
+  return data as TaskResponse;
 } 
