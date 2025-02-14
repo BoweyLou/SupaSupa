@@ -1010,9 +1010,9 @@ export default function DashboardPage() {
       }
     };
 
-    // NEW: useEffect to fetch regular awards for parent
+    // NEW: useEffect to fetch regular awards for all users (parent and child)
     useEffect(() => {
-      if (dbUser && dbUser.role === 'parent') {
+      if (dbUser) {
         fetchAwards();
       }
     }, [dbUser]);
@@ -1070,6 +1070,26 @@ export default function DashboardPage() {
       } catch (err: unknown) {
         console.error('Error deleting award:', err);
         setError('Failed to delete award');
+      }
+    };
+
+    // NEW: Handler to claim an award
+    const handleClaimAward = async (awardId: string) => {
+      try {
+        const { error } = await supabase
+          .from('awards')
+          .update({ awarded: true })
+          .eq('id', awardId);
+        if (error) {
+          console.error('Error claiming award:', error);
+          setError('Failed to claim award');
+        } else {
+          // Optionally, update child's points or show success message
+          fetchAwards();
+        }
+      } catch (err: unknown) {
+        console.error('Error in handleClaimAward:', err);
+        setError('Failed to claim award');
       }
     };
 
@@ -1318,11 +1338,21 @@ export default function DashboardPage() {
 
                         <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
                           {selectedChild && (
-                            <AwardsSection 
-                              hideHeading={true}
-                              childrenAccounts={[selectedChild]}
-                              onRedeemSuccess={(childId: string, newPoints: number) => updateChildPoints(childId, newPoints)} 
-                            />
+                            <>
+                              {awards && awards.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                  {awards.map((award: any) => (
+                                    <AwardCard 
+                                      key={award.id} 
+                                      award={award} 
+                                      onClaim={handleClaimAward}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mb-4">No awards available.</p>
+                              )}
+                            </>
                           )}
                         </DashboardSection>
                       </>
