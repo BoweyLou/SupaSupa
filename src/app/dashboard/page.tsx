@@ -1169,9 +1169,7 @@ export default function DashboardPage() {
                                             fetchChildTasks();
                                         }} 
                                     />
-                                    <AddAward onAwardAdded={() => {
-                                        // Optionally refresh awards if needed
-                                    }} />
+                                    <AddAward onAwardAdded={fetchAwards} />
                                 </div>
                             )}
                             {activeTasks.length > 0 ? (

@@ -34,7 +34,7 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded }) => {
     try {
       const { error: dbError } = await supabase
         .from('awards')
-        .insert([{ title: awardName, description, points: cost }]);
+        .insert([{ title: awardName, description, points: cost, awarded: false }]);
       if (dbError) {
         setError(dbError.message);
       } else {
