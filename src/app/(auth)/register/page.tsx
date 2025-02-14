@@ -31,7 +31,7 @@ export default function RegisterPage() {
                 throw error ?? new Error('User creation failed');
             }
 
-            // Create a new family for the parent user
+            // Create a new family for the parent user and insert user record with family id
             {
                 const { data: familyData, error: familyError }: { data: { family_id: string } | null, error: Error | null } = await supabase
                     .from('families')
@@ -39,11 +39,18 @@ export default function RegisterPage() {
                     .select('*')
                     .single();
                 if (familyError || !familyData) throw familyError ?? new Error('Family creation failed');
-                const { error: updateError }: { error: Error | null } = await supabase
+                const { data: userData, error: insertError }: { data: { id: string } | null, error: Error | null } = await supabase
                     .from('users')
-                    .update({ family_id: familyData.family_id })
-                    .eq('id', data.user.id);
-                if (updateError) throw updateError;
+                    .insert([{ 
+                        id: data.user.id, 
+                        name, 
+                        family_id: familyData.family_id, 
+                        role: 'parent', 
+                        points: 0 
+                    }])
+                    .select()
+                    .single();
+                if (insertError || !userData) throw insertError ?? new Error('User creation in DB failed');
             }
 
             router.push('/dashboard');
