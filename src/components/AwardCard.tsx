@@ -28,18 +28,16 @@ export interface AwardCardProps {
 }
 
 const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, isParentView = false, onEdit, onDelete, hideActions = false }) => {
-  // Check if the award belongs to the current family
-  if (currentFamilyId && award.familyId !== currentFamilyId) {
-    // If the award's family id does not match the logged in user's family id, do not render the award
-    return null;
-  }
-
+  // Initialize hooks unconditionally
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(award.title);
   const [editDescription, setEditDescription] = useState(award.description || '');
   const [editPoints, setEditPoints] = useState(award.points.toString());
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+
+  // Remove the early return after hooks
+  const shouldRenderAward = currentFamilyId ? award.familyId === currentFamilyId : true;
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -57,7 +55,7 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, 
     setIsEditModalOpen(false);
   };
 
-  return (
+  return shouldRenderAward ? (
     <div className="border border-gray-200 rounded-lg p-4 bg-white">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center">
@@ -145,7 +143,7 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, 
 
       {/* End of Award card */}
     </div>
-  );
+  ) : null;
 };
 
 export default AwardCard; 
