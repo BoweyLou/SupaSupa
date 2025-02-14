@@ -9,10 +9,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Exclude supabase by replacing the module with an empty module on client-side builds
-      config.resolve.alias['@supabase/supabase-js'] = false;
-    }
+    // If you need supabase on the client, do not exclude it
+    // if (!isServer) {
+    //   config.resolve.alias['@supabase/supabase-js'] = false;
+    // }
     return config;
   },
 };
