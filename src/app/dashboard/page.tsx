@@ -6,7 +6,6 @@ import QuestCard, { Quest } from '@/components/QuestCard';
 import AddTask from '@/components/AddTask';
 import PointsDisplay from '@/components/PointsDisplay';
 import { fetchParentTasks, fetchChildTasks as repoFetchChildTasks, updateTaskStatus, fetchTask } from '@/repositories/tasksRepository';
-import AwardsSection from '@/components/AwardsSection';
 import AddAward from '@/components/AddAward';
 import DashboardSection from '@/components/DashboardSection';
 import { Compass, Award as AwardIcon } from 'lucide-react';
@@ -1341,7 +1340,7 @@ export default function DashboardPage() {
                             <>
                               {awards && awards.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                  {awards.map((award: any) => (
+                                  {awards.map((award: Award) => (
                                     <AwardCard 
                                       key={award.id} 
                                       award={award} 
