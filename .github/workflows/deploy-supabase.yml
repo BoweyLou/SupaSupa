@@ -9,19 +9,16 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production  # Associates this job with the 'production' environment
+
+    env:
+      SUPABASE_ACCESS_TOKEN: YOUR_SUPABASE_ACCESS_TOKEN
+      PROJECT_ID: YOUR_SUPABASE_PROJECT_ID
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v1
         with:
           version: latest
 
-      - name: Deploy Supabase Function
-        env:
-          SUPABASE_ACCESS_TOKEN:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwaXVpaWpncmp4c3V2cG5yd2h6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczOTQ0MDgyOCwiZXhwIjoyMDU1MDE2ODI4fQ.Lx9HlYpnk3_g4T06wcDkaudlSIPB5EyWAe93oDzVsrs
-          PROJECT_ID:kpiuiijgrjxsuvpnrwhz
-        run: supabase functions deploy --project-ref kpiuiijgrjxsuvpnrwhz
+      - run: supabase functions deploy --project-ref $PROJECT_ID
