@@ -21,4 +21,8 @@ jobs:
         with:
           version: latest
 
-      - run: supabase functions deploy --project-ref $PROJECT_ID
+      - name: Run DB migrations
+        run: supabase db push
+
+     ## - name: Deploy Edge Functions
+     ##   run: supabase functions deploy --project-ref $PROJECT_ID
