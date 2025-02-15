@@ -1,25 +1,24 @@
-name: Generate Embeddings
+name: Deploy Function
 
 on:
   push:
     branches:
-      - main  # Adjust this to your default branch
+      - main
   workflow_dispatch:
 
 jobs:
-  generate:
+  deploy:
     runs-on: ubuntu-latest
-    environment: production  # Associates this job with the 'production' environment
 
-env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      PROJECT_ID: kpiuiijgrjxsuvpnrwhz
+    env:
+      SUPABASE_ACCESS_TOKEN: YOUR_SUPABASE_ACCESS_TOKEN
+      PROJECT_ID: YOUR_SUPABASE_PROJECT_ID
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: supabase/setup-cli@v1
         with:
           version: latest
 
-      - run: supabase functions deploy github-action-deploy --project-ref $PROJECT_ID
+      - run: supabase functions deploy --project-ref $PROJECT_ID
