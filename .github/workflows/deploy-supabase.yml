@@ -17,8 +17,12 @@ jobs:
         run: |
           curl -fsSL https://supabase.com/cli/install | sh
           echo "$HOME/.supabase/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.supabase/bin:$PATH"
+          supabase --version  # Check if the CLI is installed
 
       - name: Link to Supabase Prod
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
 
       - name: Deploy Migrations to Prod
@@ -26,4 +30,5 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
+          supabase --version  # Double-check CLI installation
           supabase db push
