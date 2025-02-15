@@ -22,6 +22,6 @@ jobs:
 
       - name: Deploy Supabase Function
         env:
-          SUPABASE_ACCESS_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwaXVpaWpncmp4c3V2cG5yd2h6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczOTQ0MDgyOCwiZXhwIjoyMDU1MDE2ODI4fQ.Lx9HlYpnk3_g4T06wcDkaudlSIPB5EyWAe93oDzVsrs
-          PROJECT_ID: kpiuiijgrjxsuvpnrwhz
+          SUPABASE_ACCESS_TOKEN:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwaXVpaWpncmp4c3V2cG5yd2h6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczOTQ0MDgyOCwiZXhwIjoyMDU1MDE2ODI4fQ.Lx9HlYpnk3_g4T06wcDkaudlSIPB5EyWAe93oDzVsrs
+          PROJECT_ID:kpiuiijgrjxsuvpnrwhz
         run: supabase functions deploy --project-ref kpiuiijgrjxsuvpnrwhz
