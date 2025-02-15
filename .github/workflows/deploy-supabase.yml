@@ -9,6 +9,7 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    environment: production  # Associates this job with the 'production' environment
 
     steps:
       - name: Check out code
