@@ -11,14 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: production  # Associates this job with the 'production' environment
 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_ID: kpiuiijgrjxsuvpnrwhz
 
-      - name: Generate Embeddings
-        uses: supabase/embeddings-generator@v0.0.5  # Use the latest stable version
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: supabase/setup-cli@v1
         with:
-          supabase-url: 'https://kpiuiijgrjxsuvpnrwhz.supabase.co'  # Replace with your Supabase project URL
-          supabase-service-role-key: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          openai-key: ${{ secrets.OPENAI_KEY }}
-          docs-root-path: 'docs'  # Adjust this path to where your markdown files are located
+          version: latest
+
+      - run: supabase functions deploy github-action-deploy --project-ref $PROJECT_ID
