@@ -24,4 +24,4 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PROJECT_ID: ${{ secrets.PROJECT_ID }}
-        run: supabase functions deploy --project-ref $PROJECT_ID
+        run: supabase functions deploy --project-ref kpiuiijgrjxsuvpnrwhz
