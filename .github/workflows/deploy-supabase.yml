@@ -1,4 +1,4 @@
-name: Deploy Supabase Migrations
+name: Generate Embeddings
 
 on:
   push:
@@ -7,27 +7,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  generate:
     runs-on: ubuntu-latest
-
-    environment: production  # Ensure this matches your GitHub environment name
 
     steps:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+      - name: Generate Embeddings
+        uses: supabase/embeddings-generator@v0.0.5  # Use the latest stable version
         with:
-          version: latest
-
-      - name: Link to Supabase project
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --debug
-
-      - name: Deploy migrations
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase db push --debug
+          supabase-url: 'https://kpiuiijgrjxsuvpnrwhz.supabase.co'  # Replace with your Supabase project URL
+          supabase-service-role-key: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          openai-key: ${{ secrets.OPENAI_KEY }}
+          docs-root-path: 'docs'  # Adjust this path to where your markdown files are located
