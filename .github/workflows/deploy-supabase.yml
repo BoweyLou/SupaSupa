@@ -1,7 +1,16 @@
+name: Deploy Supabase Migrations
+
+on:
+  push:
+    branches:
+      - main  # Adjust this to your default branch
+  workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production  # Replace with your environment name
+
+    environment: production  # Ensure this matches your GitHub environment name
 
     steps:
       - name: Check out code
@@ -14,11 +23,9 @@ jobs:
 
       - name: Link to Supabase project
         env:
-          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          echo "Linking to Supabase project with ref: $SUPABASE_PROJECT_ID"
-          supabase link --project-ref $SUPABASE_PROJECT_ID --debug
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --debug
 
       - name: Deploy migrations
         env:
