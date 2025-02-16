@@ -26,6 +26,10 @@ jobs:
       - name: Link to Supabase
         run: supabase link --project-ref $PROJECT_ID
 
+      - name: DB Migrations
+        run: supabase db push --password ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+
       - name: Apply Migrations
         run: supabase db push
 
