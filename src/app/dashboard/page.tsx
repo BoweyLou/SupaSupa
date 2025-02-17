@@ -19,6 +19,8 @@ import DashboardTabs from '@/components/DashboardTabs';
 import DashboardNav from '@/components/DashboardNav';
 import AwardCard, { Award } from '@/components/AwardCard';
 import { Session } from '@supabase/supabase-js';
+import Awards from '@/pages/child/Awards';
+import ClaimedAwards from '@/components/ClaimedAwards';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -993,10 +995,13 @@ export default function DashboardPage() {
     // NEW: Function to fetch awards from the 'awards' table
     const fetchAwards = async () => {
       try {
-        const { data: awardsData, error: awardsError } = await supabase
-          .from('awards')
-          .select('*')
-          .order('created_at', { ascending: false });
+        let query = supabase.from('awards').select('*');
+        if (dbUser?.family_id) {
+          query = query.eq('family_id', dbUser.family_id);
+        }
+        query = query.order('created_at', { ascending: false });
+        const { data: awardsData, error: awardsError } = await query;
+      
         if (awardsError) {
           console.error('Error fetching awards:', awardsError);
           setError('Failed to fetch awards');
@@ -1075,20 +1080,59 @@ export default function DashboardPage() {
     // NEW: Handler to claim an award
     const handleClaimAward = async (awardId: string) => {
       try {
-        const { error } = await supabase
+        const award = awards.find(a => a.id === awardId);
+        if (!award) {
+          setError('Award not found.');
+          return;
+        }
+        if (!dbUser) {
+          setError('User not found.');
+          return;
+        }
+        if (dbUser.points < award.points) {
+          setError('Insufficient points to claim this award.');
+          return;
+        }
+        const newPoints = dbUser.points - award.points;
+        // Deduct points from child's account
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ points: newPoints })
+          .eq('id', dbUser.id);
+        if (updateError) {
+          setError('Failed to update points.');
+          return;
+        }
+        // Insert a record into the claimed_awards table to log the award claim
+        const { data: claimData, error: claimError } = await supabase
+          .from('claimed_awards')
+          .insert({
+             award_id: award.id,
+             child_id: dbUser.id,
+             claimed_at: new Date().toISOString(),
+             points_deducted: award.points
+          });
+        if (claimError) {
+           setError('Error recording claimed award.');
+           console.error('Error inserting claimed award record:', claimError.message);
+           return;
+        }
+        // Mark the award as claimed in the awards table
+        const { error: awardUpdateError } = await supabase
           .from('awards')
           .update({ awarded: true })
-          .eq('id', awardId);
-        if (error) {
-          console.error('Error claiming award:', error);
-          setError('Failed to claim award');
-        } else {
-          // Optionally, update child's points or show success message
-          fetchAwards();
+          .eq('id', award.id);
+        if (awardUpdateError) {
+          setError('Error updating award status.');
+          console.error('Error updating award status:', awardUpdateError.message);
+          return;
         }
-      } catch (err: unknown) {
-        console.error('Error in handleClaimAward:', err);
-        setError('Failed to claim award');
+        // Update local state: update dbUser points and mark award as awarded
+        setDbUser(prev => prev ? { ...prev, points: newPoints } : prev);
+        setAwards(prevAwards => prevAwards.map(a => (a.id === awardId ? { ...a, awarded: true } : a)));
+      } catch (err) {
+        console.error('Error claiming award', err);
+        setError('An unexpected error occurred while claiming award.');
       }
     };
 
@@ -1188,7 +1232,7 @@ export default function DashboardPage() {
                                             fetchChildTasks();
                                         }} 
                                     />
-                                    <AddAward onAwardAdded={fetchAwards} />
+                                    <AddAward onAwardAdded={fetchAwards} familyId={familyId ?? undefined} />
                                 </div>
                             )}
                             {activeTasks.length > 0 ? (
@@ -1335,25 +1379,21 @@ export default function DashboardPage() {
                           </DashboardSection>
                         )}
 
+                        {/* Child view for available rewards */}
                         <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
                           {selectedChild && (
                             <>
-                              {awards && awards.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                  {awards.map((award: Award) => (
-                                    <AwardCard 
-                                      key={award.id} 
-                                      award={award} 
-                                      onClaim={handleClaimAward}
-                                    />
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="mb-4">No awards available.</p>
-                              )}
+                              <Awards activeChildId={selectedChild.id} />
                             </>
                           )}
                         </DashboardSection>
+
+                        {/* New section for claimed rewards */}
+                        {selectedChild && (
+                          <DashboardSection title="Claimed Rewards">
+                            <ClaimedAwards activeChildId={selectedChild.id} />
+                          </DashboardSection>
+                        )}
                       </>
                     )}
                   </div>

@@ -1,4 +1,6 @@
 import { Star } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface ChildPoints {
   id: string;
@@ -39,6 +41,53 @@ const renderStars = (points: number) => {
 };
 
 export default function PointsDisplay({ childAccounts, showFamilyPoints = true }: PointsDisplayProps) {
+  // Maintain a local map of child points to allow instant updates
+  const [pointsMap, setPointsMap] = useState<{ [key: string]: number }>(() => {
+    return childAccounts.reduce((acc, child) => {
+      acc[child.id] = child.points;
+      return acc;
+    }, {} as { [key: string]: number });
+  });
+
+  // Update local points map whenever the passed childAccounts prop changes
+  useEffect(() => {
+    setPointsMap(childAccounts.reduce((acc, child) => {
+      acc[child.id] = child.points;
+      return acc;
+    }, {} as { [key: string]: number }));
+  }, [childAccounts]);
+
+  // Subscribe to real-time updates on users to update points instantly
+  useEffect(() => {
+    const childIds = childAccounts.map(child => child.id);
+    const channel = supabase.channel('points-display')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, payload => {
+        const updatedUser = payload.new;
+        if (childIds.includes(updatedUser.id)) {
+          setPointsMap(prev => ({ ...prev, [updatedUser.id]: updatedUser.points }));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [childAccounts]);
+
+  // Listen for custom events to instantly update points (especially for self-triggered updates from redemption)
+  useEffect(() => {
+    const handleChildPointsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { childId, points } = customEvent.detail;
+      setPointsMap(prev => ({ ...prev, [childId]: points }));
+    };
+
+    window.addEventListener('childPointsUpdated', handleChildPointsUpdated);
+    return () => {
+      window.removeEventListener('childPointsUpdated', handleChildPointsUpdated);
+    };
+  }, []);
+
   if (showFamilyPoints) {
     return (
       <div className="mb-8">
@@ -51,10 +100,10 @@ export default function PointsDisplay({ childAccounts, showFamilyPoints = true }
               <div key={child.id} className="flex-1 text-left border-r border-white last:border-r-0 relative py-2 px-6">
                 <div className="text-lg font-semibold">{child.name}</div>
                 <div className="text-4xl font-bold">
-                  {child.points}<span className="ml-1 text-sm opacity-90">points</span>
+                  {pointsMap[child.id] ?? child.points}<span className="ml-1 text-sm opacity-90">points</span>
                 </div>
                 <div className="mt-2 flex justify-center">
-                  {renderStars(child.points)}
+                  {renderStars(pointsMap[child.id] ?? child.points)}
                 </div>
               </div>
             ))}

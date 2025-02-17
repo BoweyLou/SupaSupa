@@ -5,11 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { Plus } from 'lucide-react';
 
 // Props for the AddAward component
-interface AddAwardProps {
+export interface AddAwardProps {
   onAwardAdded?: () => void; // Callback to refresh awards list after adding a new award
+  familyId?: string;         // Current user's family id
 }
 
-const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded }) => {
+const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [awardName, setAwardName] = useState('');
   const [description, setDescription] = useState('');
@@ -34,7 +35,7 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded }) => {
     try {
       const { error: dbError } = await supabase
         .from('awards')
-        .insert([{ title: awardName, description, points: cost, awarded: false }]);
+        .insert([{ title: awardName, description, points: cost, awarded: false, family_id: familyId }]);
       if (dbError) {
         setError(dbError.message);
       } else {
