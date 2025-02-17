@@ -108,7 +108,7 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
     window.dispatchEvent(new CustomEvent('childPointsUpdated', { detail: { childId: activeChildId, points: newPoints } }));
 
     // Insert a record into the claimed_awards table for phase 2 award claim tracking
-    const { data: claimData, error: claimError } = await supabase
+    const { error: claimError } = await supabase
       .from('claimed_awards')
       .insert({
          award_id: award.id,

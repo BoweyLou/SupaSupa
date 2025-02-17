@@ -313,8 +313,8 @@ export default function DashboardPage() {
 
     // Function to update a child's points in the local state
     const updateChildPoints = (childId: string, newPoints: number) => {
-        setChildren(prevChildren => 
-            prevChildren.map(child => 
+        setChildren((prevChildren: Child[]) => 
+            prevChildren.map((child: Child) => 
                 child.id === childId 
                     ? { ...child, points: newPoints }
                     : child
@@ -770,7 +770,7 @@ export default function DashboardPage() {
     const tabs = useMemo(() => {
       if (!dbUser) return [];
       if (dbUser.role === 'parent') {
-         const childTabs = children.map(child => ({ id: child.id, label: child.name }));
+         const childTabs = children.map((child: Child) => ({ id: child.id, label: child.name }));
          return [...childTabs, { id: 'parent', label: 'Parent Dashboard' }];
       } else {
          return [{ id: dbUser.id, label: typeof dbUser.user_metadata?.name === 'string' ? dbUser.user_metadata.name : 'My Dashboard' }];
@@ -785,16 +785,16 @@ export default function DashboardPage() {
         // We assume dbUser shape is compatible with Child interface
         selectedChild = { id: dbUser.id, name: dbUser.name, points: dbUser.points, family_id: dbUser.family_id, role: 'child' };
       } else if (activeTab !== 'parent') {
-        selectedChild = children.find(child => child.id === activeTab) || null;
+        selectedChild = children.find((child: Child) => child.id === activeTab) || null;
       }
     }
 
     // Compute the child's completed tasks for today
-    const completedTasksForChild = selectedChild ? (childTasks[selectedChild.id] || []).filter(task => task.status === 'completed' && isToday(task.completedAt)) : [];
+    const completedTasksForChild = selectedChild ? (childTasks[selectedChild.id] || []).filter((task: Quest) => task.status === 'completed' && isToday(task.completedAt)) : [];
 
     // Compute active and completed tasks for parent's task view
-    const activeTasks = tasks.filter(task => task.status !== 'completed');
-    const completedTasks = tasks.filter(task => task.status === 'completed');
+    const activeTasks = tasks.filter((task: Quest) => task.status !== 'completed');
+    const completedTasks = tasks.filter((task: Quest) => task.status === 'completed');
 
     // NEW: Function to fetch bonus awards
     const fetchBonusAwards = async () => {
@@ -958,7 +958,7 @@ export default function DashboardPage() {
 
     // NEW: Handler to edit a bonus award
     const handleEditBonus = async (bonusAwardId: string) => {
-      const bonus = bonusAwards.find(b => b.id === bonusAwardId);
+      const bonus = bonusAwards.find((b: BonusAward) => b.id === bonusAwardId);
       if (!bonus) return;
       const newTitle = window.prompt('Enter new title', bonus.title);
       if (newTitle === null) return;
@@ -993,7 +993,7 @@ export default function DashboardPage() {
     };
 
     // NEW: Function to fetch awards from the 'awards' table
-    const fetchAwards = async () => {
+    const fetchAwards = useCallback(async () => {
       try {
         let query = supabase.from('awards').select('*');
         if (dbUser?.family_id) {
@@ -1012,18 +1012,18 @@ export default function DashboardPage() {
         console.error('Unexpected error fetching awards:', err);
         setError('An unexpected error occurred while fetching awards');
       }
-    };
+    }, [dbUser?.family_id]);
 
     // NEW: useEffect to fetch regular awards for all users (parent and child)
     useEffect(() => {
       if (dbUser) {
         fetchAwards();
       }
-    }, [dbUser]);
+    }, [dbUser, fetchAwards]);
 
     // Add handlers for editing and deleting awards
     const handleEditAward = async (awardId: string) => {
-      const award = awards.find(a => a.id === awardId);
+      const award = awards.find((a: Award) => a.id === awardId);
       if (!award) return;
       
       const newTitle = window.prompt('Enter new title', award.title);
@@ -1077,65 +1077,6 @@ export default function DashboardPage() {
       }
     };
 
-    // NEW: Handler to claim an award
-    const handleClaimAward = async (awardId: string) => {
-      try {
-        const award = awards.find(a => a.id === awardId);
-        if (!award) {
-          setError('Award not found.');
-          return;
-        }
-        if (!dbUser) {
-          setError('User not found.');
-          return;
-        }
-        if (dbUser.points < award.points) {
-          setError('Insufficient points to claim this award.');
-          return;
-        }
-        const newPoints = dbUser.points - award.points;
-        // Deduct points from child's account
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({ points: newPoints })
-          .eq('id', dbUser.id);
-        if (updateError) {
-          setError('Failed to update points.');
-          return;
-        }
-        // Insert a record into the claimed_awards table to log the award claim
-        const { data: claimData, error: claimError } = await supabase
-          .from('claimed_awards')
-          .insert({
-             award_id: award.id,
-             child_id: dbUser.id,
-             claimed_at: new Date().toISOString(),
-             points_deducted: award.points
-          });
-        if (claimError) {
-           setError('Error recording claimed award.');
-           console.error('Error inserting claimed award record:', claimError.message);
-           return;
-        }
-        // Mark the award as claimed in the awards table
-        const { error: awardUpdateError } = await supabase
-          .from('awards')
-          .update({ awarded: true })
-          .eq('id', award.id);
-        if (awardUpdateError) {
-          setError('Error updating award status.');
-          console.error('Error updating award status:', awardUpdateError.message);
-          return;
-        }
-        // Update local state: update dbUser points and mark award as awarded
-        setDbUser(prev => prev ? { ...prev, points: newPoints } : prev);
-        setAwards(prevAwards => prevAwards.map(a => (a.id === awardId ? { ...a, awarded: true } : a)));
-      } catch (err) {
-        console.error('Error claiming award', err);
-        setError('An unexpected error occurred while claiming award.');
-      }
-    };
-
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -1175,7 +1116,7 @@ export default function DashboardPage() {
                             <h2 className="text-2xl font-semibold mb-4">Child Accounts</h2>
                             {children && children.length > 0 ? (
                                 <ul className="mb-4">
-                                    {children.map((child) => (
+                                    {children.map((child: Child) => (
                                         <ChildAccountCard
                                           key={child.id}
                                           child={child}
@@ -1259,9 +1200,9 @@ export default function DashboardPage() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                               <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
                           </div>
-                          { bonusAwards.filter(b => b.status === 'available').length > 0 ? (
+                          { bonusAwards.filter((b: BonusAward) => b.status === 'available').length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                              { bonusAwards.filter(b => b.status === 'available').map(bonus => (
+                              { bonusAwards.filter((b: BonusAward) => b.status === 'available').map((bonus: BonusAward) => (
                                 <BonusAwardCard 
                                   key={bonus.id} 
                                   bonusAward={bonus}
@@ -1317,7 +1258,7 @@ export default function DashboardPage() {
                                                 <td className="px-4 py-2 border">{task.title}</td>
                                                 <td className="px-4 py-2 border">{task.description}</td>
                                                 <td className="px-4 py-2 border">{task.completedAt}</td>
-                                                <td className="px-4 py-2 border">{children.find(child => child.id === task.assignedChildId)?.name || 'Unknown Child'}</td>
+                                                <td className="px-4 py-2 border">{children.find((child: Child) => child.id === task.assignedChildId)?.name || 'Unknown Child'}</td>
                                                 <td className="px-4 py-2 border">{task.points}</td>
                                             </tr>
                                         ))}
@@ -1338,7 +1279,7 @@ export default function DashboardPage() {
                         <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>{selectedChild ? (
                             <ChildDashboardSection
                               child={selectedChild}
-                              tasks={(childTasks[selectedChild.id] || []).filter(task => task.status !== 'completed')}
+                              tasks={(childTasks[selectedChild.id] || []).filter((task: Quest) => task.status !== 'completed')}
                               onComplete={handleTaskCompletion}
                             />
                           ) : (
@@ -1349,7 +1290,7 @@ export default function DashboardPage() {
                         {selectedChild && completedTasksForChild.length > 0 && (
                           <DashboardSection title="Today's Completed Tasks">
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                              {completedTasksForChild.map(task => (
+                              {completedTasksForChild.map((task: Quest) => (
                                 <CompletedTaskCard key={task.id} task={task} />
                               ))}
                             </div>
@@ -1360,9 +1301,9 @@ export default function DashboardPage() {
                         {selectedChild && (
                           <DashboardSection title="Bonus Awards">
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                              {bonusAwards && bonusAwards.map(b => {
-                                  const isAwarded = (b.instances || []).some(instance => instance.assigned_child_id === selectedChild.id);
-                                  const awardedAt = (b.instances || []).find(instance => instance.assigned_child_id === selectedChild.id)?.awarded_at;
+                              {bonusAwards && bonusAwards.map((b: BonusAward) => {
+                                  const isAwarded = (b.instances || []).some((instance: BonusAwardInstance) => instance.assigned_child_id === selectedChild.id);
+                                  const awardedAt = (b.instances || []).find((instance: BonusAwardInstance) => instance.assigned_child_id === selectedChild.id)?.awarded_at;
                                   const bonusForChild = {
                                     id: b.id,
                                     title: b.title,
