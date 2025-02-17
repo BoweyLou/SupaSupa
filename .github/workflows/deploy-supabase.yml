@@ -26,12 +26,12 @@ jobs:
       - name: Link to Supabase
         run: supabase link --project-ref $PROJECT_ID
 
-      - name: DB Migrations
-        run: supabase migration repair --status reverted 20250215044030 20250215053101 --password ${{ secrets.SUPABASE_DB_PASSWORD }}
+#      - name: DB Migrations
+ #       run: supabase migration repair --status reverted 20250215044030 20250215053101 --password ${{ secrets.SUPABASE_DB_PASSWORD }}
 
 
- #     - name: Apply Migrations
- #       run: supabase db push
+      - name: Apply Migrations
+        run: supabase db push
 
    ##   - name: Deploy Functions
    ##     run: supabase functions deploy --project-ref $PROJECT_ID
