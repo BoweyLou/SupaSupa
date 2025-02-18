@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react';
 import { Award as AwardIcon } from 'lucide-react';
+import StarDisplay from './StarDisplay';
 
 export interface Award {
   id: string;
@@ -65,6 +66,12 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, 
         <div className="text-sm font-medium text-gray-600">{award.points} pts</div>
       </div>
       {award.description && <p className="text-sm text-gray-700">{award.description}</p>}
+      
+      {/* Add star display */}
+      <div className="mt-2 mb-2">
+        <StarDisplay points={award.points} size="sm" />
+      </div>
+
       { !award.awarded && !hideActions && (
         isParentView ? (
           onEdit && onDelete && (

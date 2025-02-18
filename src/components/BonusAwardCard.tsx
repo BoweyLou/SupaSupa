@@ -23,6 +23,7 @@ import {
   Bike,
   Settings
 } from 'lucide-react';
+import StarDisplay from './StarDisplay';
 
 // Define available icons with their colors - keep in sync with AddBonusAward
 export const AVAILABLE_ICONS = [
@@ -155,6 +156,12 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
       <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>
         {bonusAward.points || 0} pts
       </div>
+
+      {/* Add star display */}
+      <div className="mb-4">
+        <StarDisplay points={bonusAward.points} size="sm" />
+      </div>
+
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <button 
           onClick={onAward} 

@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Award, Zap, Settings, Trash } from 'lucide-react';
 import { updateTask, deleteTask } from '@/repositories/tasksRepository';
+import StarDisplay from './StarDisplay';
 
 export interface Quest {
   id: string;
@@ -97,99 +98,63 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
   };
 
   return (
-    <div style={{
-      position: 'relative',
-      border: '2px solid #f9c74f',
-      borderRadius: '12px',
-      padding: '16px',
-      margin: '8px 0',
-      background: 'linear-gradient(45deg, #8e44ad 10%, #3498db 90%)',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      transition: 'transform 0.2s ease-in-out'
-    }}>
-      {/* Updated Header: Include Award icon with quest title */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <Award size={36} color="#f9c74f" style={{ marginRight: '8px' }} />
-          <h3 style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.5rem', fontWeight: 600, margin: 0, color: '#fff' }}>{quest.title}</h3>
+    <div className="border border-gray-200 rounded-lg p-4 bg-white">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center">
+          <Award size={24} className="text-gray-500 mr-2" />
+          <h3 className="text-lg font-semibold text-gray-800">{quest.title}</h3>
         </div>
-        <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.2rem', fontWeight: 'bold', color: '#f9c74f', display: 'flex', alignItems: 'center' }}>
-          <Zap size={20} color="#f9c74f" style={{ marginRight: '4px' }} />
+        <div className="text-sm font-medium text-gray-600">
+          <Zap size={16} className="inline mr-1" />
           {quest.points} pts
-        </span>
+        </div>
       </div>
-      {/* Content: Description and Frequency/Status/Assignment based on userRole */}
-      <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1rem', color: '#fff', margin: '4px 0' }}>{quest.description}</p>
+      
+      <p className="text-sm text-gray-700 mb-2">{quest.description}</p>
+      
+      <div className="mt-2 mb-2">
+        <StarDisplay points={quest.points} size="sm" />
+      </div>
+      
       {userRole === 'parent' && (
-        <>
+        <div className="space-y-1">
           {quest.frequency && (
-            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#fff', margin: '4px 0' }}>
+            <p className="text-sm text-gray-600">
               <strong>Frequency:</strong> {quest.frequency}
             </p>
           )}
-          <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#fff', margin: '4px 0' }}>
+          <p className="text-sm text-gray-600">
             <strong>Status:</strong> {quest.status}
           </p>
           {quest.assignedChildId && (
-            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.95rem', color: '#fff', margin: '4px 0' }}>
+            <p className="text-sm text-gray-600">
               <strong>Assigned to:</strong> {childNameMapping && childNameMapping[quest.assignedChildId] ? childNameMapping[quest.assignedChildId] : 'Unknown'}
             </p>
           )}
-        </>
+        </div>
       )}
-      {/* Role-based actions */}
+
       {!hideActions && userRole === 'child' && quest.status === 'assigned' && (
         <button
-          style={{
-            width: '100%',
-            fontFamily: 'Poppins, sans-serif',
-            fontSize: '1rem',
-            padding: '8px 12px',
-            background: 'linear-gradient(45deg, #3b82f6, #2563eb)',
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.4)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
+          className="mt-2 w-full py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
           onClick={handleComplete}
         >
           I did it
         </button>
       )}
+
       {!hideActions && userRole === 'parent' && (
-        <div style={{ marginTop: '8px', display: 'flex', gap: '8px', width: '100%' }}>
+        <div className="mt-2 flex space-x-2">
           {quest.status === 'pending' && (
             <>
               <button
-                style={{
-                  flex: 1,
-                  fontFamily: 'Poppins, sans-serif',
-                  fontSize: '1rem',
-                  padding: '8px 12px',
-                  background: 'linear-gradient(45deg, #3b82f6, #2563eb)',
-                  boxShadow: '0 0 0 1px rgba(255,255,255,0.4)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
+                className="w-full py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
                 onClick={handleApprove}
               >
                 Approve
               </button>
               <button
-                style={{
-                  flex: 1,
-                  fontFamily: 'Poppins, sans-serif',
-                  fontSize: '1rem',
-                  padding: '8px 12px',
-                  backgroundColor: '#ddd',
-                  color: '#333',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
+                className="w-full py-1 px-3 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors text-sm"
                 onClick={handleReject}
               >
                 Reject
@@ -198,73 +163,94 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
           )}
           <button
             onClick={handleOpenEditModal}
-            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
             title="Edit"
           >
-            <Settings className="w-4 h-4" color="#4CAF50" />
+            <Settings className="w-4 h-4" />
           </button>
           <button
             onClick={handleDelete}
-            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            className="p-1 text-red-500 hover:text-red-700 transition-colors"
             title="Delete"
           >
-            <Trash className="w-4 h-4" color="#f44336" />
+            <Trash className="w-4 h-4" />
           </button>
         </div>
       )}
-      {/* Celebration overlay for gamification feedback */}
+
       {showCelebration && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          pointerEvents: 'none',
-          animation: 'fadeInOut 3s ease-in-out'
-        }}>
-          <span style={{ fontSize: '24px', color: '#f9c74f' }}>🎉 Quest Completed! 🎉</span>
+        <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center pointer-events-none animate-fadeInOut">
+          <span className="text-2xl text-yellow-500">🎉 Quest Completed! 🎉</span>
         </div>
       )}
-      {/* Edit Modal for Parent */}
+
       {isEditModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor:'rgba(0, 0, 0, 0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 50 }}>
-          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '90%', maxWidth: '500px' }}>
-            <h2>Edit Quest</h2>
-            {editError && <p style={{ color: 'red' }}>{editError}</p>}
-            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Edit Quest</h2>
+            {editError && <p className="text-red-500 mb-4">{editError}</p>}
+            <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Title</label>
-                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }} />
+                <label className="block text-sm font-medium mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-200 rounded"
+                />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Description</label>
-                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} required style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }} />
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-200 rounded"
+                />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Reward Points</label>
-                <input type="number" value={editRewardPoints} onChange={(e) => setEditRewardPoints(e.target.value)} required style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }} />
+                <label className="block text-sm font-medium mb-1">Reward Points</label>
+                <input
+                  type="number"
+                  value={editRewardPoints}
+                  onChange={(e) => setEditRewardPoints(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-200 rounded"
+                />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Frequency</label>
-                <select value={editFrequency} onChange={(e) => setEditFrequency(e.target.value)} style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }}>
+                <label className="block text-sm font-medium mb-1">Frequency</label>
+                <select
+                  value={editFrequency}
+                  onChange={(e) => setEditFrequency(e.target.value)}
+                  className="w-full p-2 border border-gray-200 rounded"
+                >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="one-off">One-off</option>
                 </select>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap:'10px' }}>
-                <button type="button" onClick={() => setIsEditModalOpen(false)} style={{ padding:'8px 12px', backgroundColor:'#ccc', border:'none', borderRadius:'4px', cursor:'pointer' }}>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors text-sm"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={editLoading} style={{ padding:'8px 12px', backgroundColor:'#4CAF50', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer' }}>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
+                >
                   {editLoading ? 'Saving...' : 'Save'}
                 </button>
-                <button type="button" onClick={handleDelete} style={{ padding:'8px 12px', backgroundColor:'#f44336', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer' }}>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                >
                   Delete Quest
                 </button>
               </div>
@@ -272,11 +258,15 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
           </div>
         </div>
       )}
+
       <style jsx>{`
         @keyframes fadeInOut {
           0% { opacity: 0; }
           50% { opacity: 1; }
           100% { opacity: 0; }
+        }
+        .animate-fadeInOut {
+          animation: fadeInOut 3s ease-in-out;
         }
       `}</style>
     </div>
