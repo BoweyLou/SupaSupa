@@ -113,7 +113,15 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       <p className="text-sm text-gray-700 mb-2">{quest.description}</p>
       
       <div className="mt-2 mb-2">
-        <StarDisplay points={quest.points} size="sm" />
+        <StarDisplay 
+          points={quest.points} 
+          size={64} 
+          style={{ 
+            filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))', 
+            fill: '#FFD700',
+            stroke: 'none'
+          }} 
+        />
       </div>
       
       {userRole === 'parent' && (
@@ -136,7 +144,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
 
       {!hideActions && userRole === 'child' && quest.status === 'assigned' && (
         <button
-          className="mt-2 w-full py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
+          className="mt-2 w-full py-3 px-4 animated-gradient text-white rounded transition-colors text-base"
           onClick={handleComplete}
         >
           I did it

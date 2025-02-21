@@ -1,0 +1,23 @@
+/* src/styles/animated-gradient.css
+   Animated Gradient Background for buttons */
+
+/* Define the keyframe for the animated gradient */
+@keyframes gradientBackground {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Animated gradient class */
+.animated-gradient {
+  /* A linear gradient with three shades; adjust colors as needed */
+  background: linear-gradient(45deg, #1e3a8a, #3b82f6, #60a5fa);
+  background-size: 200% 200%;
+  animation: gradientBackground 4s ease infinite;
+} 

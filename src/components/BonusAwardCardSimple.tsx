@@ -52,7 +52,12 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
       {/* Icon at the top center, rendered always */}
       {IconComponent && (
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-          <IconComponent size={32} color="#f9c74f" />
+          <IconComponent 
+            size={64} 
+            fill="#f9c74f" 
+            stroke="none"
+            style={{ filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))' }} 
+          />
         </div>
       )}
       <div style={{ fontWeight: 'bold', fontSize: '0.8rem', marginBottom: '4px' }}>

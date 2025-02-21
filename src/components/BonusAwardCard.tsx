@@ -159,7 +159,15 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
 
       {/* Add star display */}
       <div className="mb-4">
-        <StarDisplay points={bonusAward.points} size="sm" />
+        <StarDisplay 
+          points={bonusAward.points} 
+          size={64} 
+          style={{ 
+            filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))', 
+            fill: '#FFD700',
+            stroke: 'none'
+          }} 
+        />
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
