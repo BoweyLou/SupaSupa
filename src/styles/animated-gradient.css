@@ -20,4 +20,15 @@
   background: linear-gradient(45deg, #1e3a8a, #3b82f6, #60a5fa);
   background-size: 200% 200%;
   animation: gradientBackground 4s ease infinite;
+}
+
+/* Add to existing animated-gradient.css */
+.star-display-large {
+  transform: scale(1.5);
+  filter: drop-shadow(0 0 8px rgba(255,215,0,0.8));
+}
+
+.star-display-large svg {
+  fill: #FFD700;
+  stroke: none;
 } 

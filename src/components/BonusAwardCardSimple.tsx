@@ -58,7 +58,7 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
             stroke="none"
             style={{ 
               filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))',
-              transform: 'scale(1.5)'  // Make it 50% bigger
+              transform: 'scale(1.5)'
             }} 
           />
         </div>
