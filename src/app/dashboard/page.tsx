@@ -1022,32 +1022,14 @@ export default function DashboardPage() {
     }, [dbUser, fetchAwards]);
 
     // Add handlers for editing and deleting awards
-    const handleEditAward = async (awardId: string) => {
-      const award = awards.find((a: Award) => a.id === awardId);
-      if (!award) return;
-      
-      const newTitle = window.prompt('Enter new title', award.title);
-      if (newTitle === null) return;
-      
-      const newDescription = window.prompt('Enter new description', award.description || '');
-      if (newDescription === null) return;
-      
-      const newPointsStr = window.prompt('Enter new points', award.points.toString());
-      if (newPointsStr === null) return;
-      
-      const newPoints = parseInt(newPointsStr, 10);
-      if (isNaN(newPoints)) {
-        setError('Points must be a valid number');
-        return;
-      }
-
+    const handleEditAward = async (awardId: string, updatedAward: { title: string, description?: string, points: number }) => {
       try {
         const { error } = await supabase
           .from('awards')
           .update({ 
-            title: newTitle, 
-            description: newDescription, 
-            points: newPoints,
+            title: updatedAward.title, 
+            description: updatedAward.description, 
+            points: updatedAward.points,
             updated_at: new Date().toISOString()
           })
           .eq('id', awardId);
