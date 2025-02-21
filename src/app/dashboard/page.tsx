@@ -1,5 +1,7 @@
 'use client';
 
+import '@/styles/animated-gradient.css';
+
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import QuestCard, { Quest } from '@/components/QuestCard';
