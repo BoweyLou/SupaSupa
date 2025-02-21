@@ -161,11 +161,12 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
       <div className="mb-4">
         <StarDisplay 
           points={bonusAward.points} 
-          size={64} 
+          size="lg"
           style={{ 
             filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))', 
             fill: '#FFD700',
-            stroke: 'none'
+            stroke: 'none',
+            transform: 'scale(1.5)'  // Make the lg size 50% bigger
           }} 
         />
       </div>
