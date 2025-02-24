@@ -1,3 +1,0 @@
-# Cloud Supabase Schema Dump
-
-
