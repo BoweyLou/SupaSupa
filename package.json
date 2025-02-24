@@ -18,6 +18,7 @@
     "next": "15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.2",
     "react-icon-picker": "^1.0.0",
     "react-icons-picker": "^1.0.9",
     "recharts": "^2.15.1",

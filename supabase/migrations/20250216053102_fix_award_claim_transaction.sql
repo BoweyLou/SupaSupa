@@ -1,6 +1,10 @@
 -- 20250216053102_fix_award_claim_transaction.sql
 -- Migration file to create a transaction function for claiming awards
 
+-- Drop existing functions if they exist
+DROP FUNCTION IF EXISTS public.claim_award_transaction(UUID, UUID, INTEGER);
+DROP FUNCTION IF EXISTS public.deduct_points(UUID, INTEGER);
+
 -- Create a transaction function to handle award claiming
 CREATE OR REPLACE FUNCTION public.claim_award_transaction(
   p_award_id UUID,

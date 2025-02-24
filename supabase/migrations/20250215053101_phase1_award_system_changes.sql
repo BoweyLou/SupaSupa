@@ -7,5 +7,15 @@ CREATE TABLE IF NOT EXISTS claimed_awards (
   points_deducted INTEGER
 );
 
--- Alter awards table to add family_id column
-ALTER TABLE awards ADD COLUMN family_id UUID REFERENCES families(family_id);
+-- Alter awards table to add family_id column (only if it doesn't exist)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_name = 'awards' 
+    AND column_name = 'family_id'
+  ) THEN
+    ALTER TABLE awards ADD COLUMN family_id UUID REFERENCES families(family_id);
+  END IF;
+END $$;
