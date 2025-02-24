@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Settings, Trash } from 'lucide-react';
+import { showToast } from '@/utils/toast';
 
 export interface Child {
   id: string;
@@ -44,7 +45,10 @@ const ChildAccountCard: React.FC<ChildAccountCardProps> = ({
             onChange={onEditChange}
             className="border rounded p-1 mr-2"
           />
-          <button onClick={() => onSaveEdit(child.id)} className="text-green-600 mr-2">Save</button>
+          <button onClick={() => {
+            onSaveEdit(child.id);
+            showToast.success(`Updated ${child.name}'s account`);
+          }} className="text-green-600 mr-2">Save</button>
           <button onClick={onCancelEdit} className="text-red-600">Cancel</button>
         </div>
       ) : (
@@ -54,7 +58,12 @@ const ChildAccountCard: React.FC<ChildAccountCardProps> = ({
             <button onClick={() => onEditClick(child)} className="text-gray-500 hover:text-gray-700" title="Settings">
               <Settings className="w-4 h-4" />
             </button>
-            <button onClick={() => onDelete(child.id)} className="text-gray-500 hover:text-red-600" title="Delete">
+            <button onClick={() => {
+              if (window.confirm(`Are you sure you want to delete ${child.name}'s account?`)) {
+                onDelete(child.id);
+                showToast.success(`Deleted ${child.name}'s account`);
+              }
+            }} className="text-gray-500 hover:text-red-600" title="Delete">
               <Trash className="w-4 h-4" />
             </button>
           </div>

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { addTask } from '@/repositories/tasksRepository';
 import { Plus } from 'lucide-react';
+import { showToast } from '@/utils/toast';
 
 // Define a Child interface matching tasks assignment
 export interface Child {
@@ -39,6 +40,7 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, availableChildren, onTaskAd
     // Basic validation: all fields must be provided
     if (!title || !description || !rewardPoints || !assignedChild) {
       setError("All fields are required.");
+      showToast.error("Please fill in all required fields");
       setLoading(false);
       return;
     }
@@ -46,6 +48,7 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, availableChildren, onTaskAd
     const points = parseInt(rewardPoints, 10);
     if (isNaN(points)) {
       setError("Reward points must be a valid number.");
+      showToast.error("Invalid points value");
       setLoading(false);
       return;
     }
@@ -67,6 +70,7 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, availableChildren, onTaskAd
       if (onTaskAdded) {
         onTaskAdded();
       }
+      showToast.success("New quest added successfully!");
       setIsModalOpen(false);
       // Reset form fields
       setTitle("");
@@ -77,8 +81,10 @@ const AddTask: React.FC<AddTaskProps> = ({ parentId, availableChildren, onTaskAd
     } catch (insertError: unknown) {
       if (insertError instanceof Error) {
         setError(insertError.message);
+        showToast.error(insertError.message);
       } else {
         setError('An unexpected error occurred.');
+        showToast.error('Failed to add quest');
       }
     }
     setLoading(false);
