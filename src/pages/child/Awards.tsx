@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import AwardCard, { Award } from '@/components/AwardCard';
 import { supabase } from '@/lib/supabase';
+import { showToast } from '@/utils/toast';
 
 interface AwardsProps {
   activeChildId: string; // Active child account id selected via parent tabs
@@ -16,6 +17,7 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [childPoints, setChildPoints] = useState<number>(0);
   const [childFamilyId, setChildFamilyId] = useState<string | null>(null);
+  const [claimInProgress, setClaimInProgress] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -27,6 +29,7 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
          .single();
       if (error) {
          console.error('Error fetching profile:', error.message);
+         showToast.error('Error loading profile');
       } else if (data) {
          console.log('Fetched child profile:', data);
          setChildPoints(data.points);
@@ -49,6 +52,7 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
 
       if (error) {
         console.error('Error fetching awards:', error.message);
+        showToast.error('Error loading awards');
       } else if (data) {
         setAwards(data as Award[]);
       }
@@ -58,77 +62,115 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
   }, [childFamilyId]);
 
   const handleClaimAward = async (awardId: string) => {
-    const award = awards.find(a => a.id === awardId);
-    if (!award) {
-      console.error('Award not found:', awardId);
+    // Prevent multiple claim attempts
+    if (claimInProgress) {
       return;
     }
     
-    // Re-fetch points to ensure we have the latest
-    const { data: currentProfile, error: profileCheckError } = await supabase
-      .from('users')
-      .select('points')
-      .eq('id', activeChildId)
-      .single();
+    setClaimInProgress(true);
+    
+    try {
+      const award = awards.find(a => a.id === awardId);
+      if (!award) {
+        console.error('Award not found:', awardId);
+        showToast.error('Award not found');
+        setClaimInProgress(false);
+        return;
+      }
       
-    if (profileCheckError) {
-      console.error('Error checking current points:', profileCheckError);
-      return;
-    }
-    
-    const currentPoints = currentProfile?.points ?? childPoints;
-    console.log('Claiming award:', {
-      awardId,
-      awardPoints: award.points,
-      childId: activeChildId,
-      currentPoints,
-      storedChildPoints: childPoints
-    });
-
-    if (currentPoints < award.points) {
-      console.log('Insufficient points:', { required: award.points, available: currentPoints });
-      alert("You don't have enough points to redeem this reward.");
-      return;
-    }
-    const { data: updatedProfile, error: profileError } = await supabase
-      .rpc('deduct_points', { child_uuid: activeChildId, deduction: award.points });
-    if (profileError) {
-      console.error('Error deducting points:', profileError.message);
-      return;
-    }
-    console.log('Updated Profile from RPC:', updatedProfile);
-    if (updatedProfile && updatedProfile.length > 0) {
-      setChildPoints(updatedProfile[0].points);
-    } else {
-      // In case RPC returns no data, fallback to deducting locally
-      setChildPoints(childPoints - award.points);
-    }
-    // Dispatch custom event to update PointsDisplay instantly
-    const newPoints = updatedProfile && updatedProfile.length > 0 ? updatedProfile[0].points : childPoints - award.points;
-    window.dispatchEvent(new CustomEvent('childPointsUpdated', { detail: { childId: activeChildId, points: newPoints } }));
-
-    // Insert a record into the claimed_awards table for phase 2 award claim tracking
-    const { error: claimError } = await supabase
-      .from('claimed_awards')
-      .insert({
-         award_id: award.id,
-         child_id: activeChildId,
-         claimed_at: new Date().toISOString(),
-         points_deducted: award.points
+      // Re-fetch points to ensure we have the latest
+      const { data: currentProfile, error: profileCheckError } = await supabase
+        .from('users')
+        .select('points')
+        .eq('id', activeChildId)
+        .single();
+        
+      if (profileCheckError) {
+        console.error('Error checking current points:', profileCheckError);
+        showToast.error('Could not verify your current points');
+        setClaimInProgress(false);
+        return;
+      }
+      
+      const currentPoints = currentProfile?.points ?? childPoints;
+      console.log('Claiming award:', {
+        awardId,
+        awardPoints: award.points,
+        childId: activeChildId,
+        currentPoints,
+        storedChildPoints: childPoints
       });
-    if (claimError) {
-       console.error('Error inserting claimed award record:', claimError.message);
-       return;
-    }
 
-    // Mark the award as claimed in the awards table
-    const { error: awardUpdateError } = await supabase
-      .from('awards')
-      .update({ awarded: true })
-      .eq('id', award.id);
-    if (awardUpdateError) {
-      console.error('Error updating award status:', awardUpdateError.message);
-      return;
+      if (currentPoints < award.points) {
+        console.log('Insufficient points:', { required: award.points, available: currentPoints });
+        showToast.error("You don't have enough points to redeem this reward");
+        setClaimInProgress(false);
+        return;
+      }
+
+      // Use the new transaction function
+      const { data: transactionResult, error: transactionError } = await supabase
+        .rpc('claim_award_transaction', {
+          p_award_id: award.id,
+          p_child_id: activeChildId,
+          p_points: award.points
+        });
+
+      if (transactionError) {
+        console.error('Transaction error:', transactionError);
+        showToast.error(`Failed to claim award: ${transactionError.message}`);
+        setClaimInProgress(false);
+        return;
+      }
+
+      if (transactionResult === false) {
+        console.error('Transaction failed without error');
+        showToast.error('Failed to claim award - insufficient points');
+        setClaimInProgress(false);
+        return;
+      }
+
+      console.log('Transaction successful:', transactionResult);
+      
+      // Re-fetch the user's points
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from('users')
+        .select('points')
+        .eq('id', activeChildId)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching updated points:', profileError);
+      } else if (updatedProfile) {
+        setChildPoints(updatedProfile.points);
+        
+        // Dispatch custom event to update PointsDisplay instantly
+        window.dispatchEvent(new CustomEvent('childPointsUpdated', { 
+          detail: { childId: activeChildId, points: updatedProfile.points } 
+        }));
+      } else {
+        // Fallback to estimated points if we can't fetch the updated profile
+        setChildPoints(currentPoints - award.points);
+        
+        // Dispatch custom event with estimated points
+        window.dispatchEvent(new CustomEvent('childPointsUpdated', { 
+          detail: { childId: activeChildId, points: currentPoints - award.points } 
+        }));
+      }
+      
+      // Update the local awards list to mark this award as awarded
+      setAwards(prevAwards => 
+        prevAwards.map(a => 
+          a.id === award.id ? { ...a, awarded: true } : a
+        )
+      );
+      
+      showToast.success(`Successfully claimed award: ${award.title}`);
+    } catch (err) {
+      console.error('Error in handleClaimAward:', err);
+      showToast.error('An unexpected error occurred while claiming the award');
+    } finally {
+      setClaimInProgress(false);
     }
   };
 
@@ -145,9 +187,17 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
             gap: '16px'
           }}>
-            {awards.map(award => (
-              <AwardCard key={award.id} award={{ ...award, awarded: false }} onClaim={handleClaimAward} />
+            {awards.filter(award => !award.awarded).map(award => (
+              <AwardCard 
+                key={award.id} 
+                award={award} 
+                onClaim={handleClaimAward} 
+                hideActions={claimInProgress}
+              />
             ))}
+            {awards.filter(award => !award.awarded).length === 0 && (
+              <p>No available awards to claim.</p>
+            )}
           </div>
         </div>
       )}

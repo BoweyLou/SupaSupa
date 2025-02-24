@@ -1,32 +1,55 @@
-import toast from 'react-hot-toast';
+// src/utils/toast.ts
+// A simple toast notification utility
+
+import { toast } from 'react-hot-toast';
 
 export const showToast = {
   success: (message: string) => {
     toast.success(message, {
-      id: message, // Prevents duplicate toasts
+      duration: 3000,
+      position: 'top-center',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+        fontWeight: 'bold',
+      },
     });
   },
   
   error: (message: string) => {
     toast.error(message, {
-      id: message,
+      duration: 4000,
+      position: 'top-center',
+      style: {
+        background: '#EF4444',
+        color: '#fff',
+        fontWeight: 'bold',
+      },
     });
   },
   
-  loading: (message: string) => {
-    return toast.loading(message, {
-      id: message,
+  info: (message: string) => {
+    toast(message, {
+      duration: 3000,
+      position: 'top-center',
+      style: {
+        background: '#3B82F6',
+        color: '#fff',
+        fontWeight: 'bold',
+      },
     });
   },
-
-  promise: async <T>(
-    promise: Promise<T>,
-    messages: {
-      loading: string;
-      success: string;
-      error: string;
-    }
-  ) => {
-    return toast.promise(promise, messages);
-  }
+  
+  warning: (message: string) => {
+    toast(message, {
+      duration: 3000,
+      position: 'top-center',
+      icon: '⚠️',
+      style: {
+        background: '#F59E0B',
+        color: '#fff',
+        fontWeight: 'bold',
+      },
+    });
+  },
 }; 

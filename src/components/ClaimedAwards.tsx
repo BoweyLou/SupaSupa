@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import ClaimedAwardCard from './ClaimedAwardCard';
 import { Award } from './AwardCard';
+import { showToast } from '@/utils/toast';
 
 interface ClaimedAward {
   id: string;
@@ -24,35 +25,64 @@ const ClaimedAwards: React.FC<ClaimedAwardsProps> = ({ activeChildId }) => {
 
   useEffect(() => {
     async function fetchClaimedAwards() {
-      const { data, error } = await supabase
-        .from('claimed_awards')
-        .select('*, awards(*)')
-        .eq('child_id', activeChildId);
-      if (error) {
-        console.error('Error fetching claimed awards:', error.message);
-      } else if (data) {
-        setClaimedAwards(data as ClaimedAward[]);
+      try {
+        console.log('Fetching claimed awards for child:', activeChildId);
+        const { data, error } = await supabase
+          .from('claimed_awards')
+          .select('*, awards(*)')
+          .eq('child_id', activeChildId)
+          .order('claimed_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching claimed awards:', error.message);
+          showToast.error('Error loading claimed awards');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Claimed awards data:', data);
+        
+        if (data && data.length > 0) {
+          setClaimedAwards(data as ClaimedAward[]);
+        } else {
+          setClaimedAwards([]);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching claimed awards:', err);
+        showToast.error('Failed to load claimed awards');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-    fetchClaimedAwards();
+    
+    if (activeChildId) {
+      fetchClaimedAwards();
+    }
   }, [activeChildId]);
 
-  if (loading) return <p>Loading claimed awards...</p>;
+  if (loading) return (
+    <div className="flex justify-center items-center p-4">
+      <div className="animate-pulse">Loading claimed awards...</div>
+    </div>
+  );
 
   return (
     <div>
       {claimedAwards.length === 0 ? (
-        <p>No claimed awards yet.</p>
+        <p className="text-center text-gray-500 p-4">No claimed awards yet.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {claimedAwards.map((claim) => {
-            if (!claim.awards) return null;
+            if (!claim.awards) {
+              console.warn('Missing award data for claimed award:', claim.id);
+              return null;
+            }
             return (
               <ClaimedAwardCard
                 key={claim.id}
                 award={claim.awards}
                 claimedAt={claim.claimed_at}
+                pointsDeducted={claim.points_deducted}
               />
             );
           })}

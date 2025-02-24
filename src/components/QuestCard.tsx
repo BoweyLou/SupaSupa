@@ -5,7 +5,6 @@ import React, { useState } from 'react';
 import { Award, Zap, Settings, Trash } from 'lucide-react';
 import { updateTask, deleteTask } from '@/repositories/tasksRepository';
 import StarDisplay from './StarDisplay';
-import { showToast } from '@/utils/toast';
 
 export interface Quest {
   id: string;
@@ -38,28 +37,19 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
   const [editLoading, setEditLoading] = useState(false);
 
   const handleComplete = () => {
-    if (onComplete) {
-      onComplete(quest.id);
-      showToast.success("Quest completed! Waiting for parent approval.");
-    }
+    if (onComplete) onComplete(quest.id);
     setShowCelebration(true);
     setTimeout(() => setShowCelebration(false), 3000);
   };
 
   const handleApprove = () => {
-    if (onComplete) {
-      onComplete(quest.id, 'approve');
-      showToast.success(`Quest "${quest.title}" approved! Points awarded.`);
-    }
+    if (onComplete) onComplete(quest.id, 'approve');
     setShowCelebration(true);
     setTimeout(() => setShowCelebration(false), 3000);
   };
 
   const handleReject = () => {
-    if (onComplete) {
-      onComplete(quest.id, 'assigned');
-      showToast.error(`Quest "${quest.title}" needs revision.`);
-    }
+    if (onComplete) onComplete(quest.id, 'assigned');
   };
 
   const handleOpenEditModal = () => {
@@ -77,7 +67,6 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
     const points = parseInt(editRewardPoints, 10);
     if (isNaN(points)) {
       setEditError('Reward points must be a valid number.');
-      showToast.error('Invalid points value');
       setEditLoading(false);
       return;
     }
@@ -90,12 +79,10 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       };
       await updateTask(quest.id, payload);
       if (onComplete) onComplete(quest.id, 'edit');
-      showToast.success('Quest updated successfully');
       setIsEditModalOpen(false);
     } catch (err) {
       console.error('Error updating quest:', err);
       setEditError('An unexpected error occurred.');
-      showToast.error('Failed to update quest');
     }
     setEditLoading(false);
   };
@@ -105,10 +92,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
     try {
       await deleteTask(quest.id);
       if (onComplete) onComplete(quest.id, 'delete');
-      showToast.success('Quest deleted successfully');
     } catch (err) {
       console.error('Error in deleting quest:', err);
-      showToast.error('Failed to delete quest');
     }
   };
 

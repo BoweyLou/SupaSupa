@@ -5,7 +5,6 @@
 import React, { useState } from 'react';
 import { Award as AwardIcon } from 'lucide-react';
 import StarDisplay from './StarDisplay';
-import { showToast } from '@/utils/toast';
 
 export interface Award {
   id: string;
@@ -47,7 +46,6 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, 
     const parsedPoints = parseInt(editPoints, 10);
     if (isNaN(parsedPoints)) {
       setEditError('Points must be a valid number.');
-      showToast.error('Invalid points value');
       setEditLoading(false);
       return;
     }
@@ -58,13 +56,11 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, 
           description: editDescription, 
           points: parsedPoints 
         });
-        showToast.success('Award updated successfully');
       }
       setIsEditModalOpen(false);
     } catch (err) {
       console.error('Error updating award:', err);
       setEditError('An unexpected error occurred.');
-      showToast.error('Failed to update award');
     }
     setEditLoading(false);
   };
@@ -112,10 +108,7 @@ const AwardCard: React.FC<AwardCardProps> = ({ award, onClaim, currentFamilyId, 
           onClaim && (
             <button
               className="mt-2 w-full py-3 px-4 animated-gradient text-white rounded transition-colors text-base"
-              onClick={() => {
-                onClaim(award.id);
-                showToast.success(`Claiming award: ${award.title}`);
-              }}
+              onClick={() => onClaim(award.id)}
             >
               Claim Award
             </button>

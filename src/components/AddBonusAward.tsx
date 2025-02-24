@@ -24,7 +24,6 @@ import {
   Music4,
   Bike
 } from 'lucide-react';
-import { showToast } from '@/utils/toast';
 
 // Define available icons with their colors
 const AVAILABLE_ICONS = [
@@ -76,18 +75,15 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
       // Validate inputs
       if (!title.trim()) {
         setError("Please enter a title");
-        showToast.error("Please enter a title");
         return;
       }
       if (!selectedIcon) {
         setError("Please select an icon");
-        showToast.error("Please select an icon");
         return;
       }
       const parsedPoints = parseInt(points, 10);
       if (isNaN(parsedPoints) || parsedPoints <= 0) {
         setError("Please enter a valid number of points");
-        showToast.error("Please enter a valid number of points");
         return;
       }
 
@@ -112,19 +108,16 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
       if (error) {
         console.error('Error creating bonus award:', error);
         setError(error.message || 'Failed to create bonus award');
-        showToast.error(error.message || 'Failed to create bonus award');
         return;
       }
 
       // Success
-      showToast.success('Bonus award created successfully!');
       onBonusAdded();
       resetForm();
       setIsModalOpen(false);
     } catch (err) {
       console.error('Unexpected error creating bonus award:', err);
       setError('An unexpected error occurred');
-      showToast.error('An unexpected error occurred');
     } finally {
       setLoading(false);
     }

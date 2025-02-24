@@ -24,7 +24,6 @@ import {
   Settings
 } from 'lucide-react';
 import StarDisplay from './StarDisplay';
-import { showToast } from '@/utils/toast';
 
 // Define available icons with their colors - keep in sync with AddBonusAward
 export const AVAILABLE_ICONS = [
@@ -98,18 +97,17 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
     const points = parseInt(editPoints, 10);
     if (isNaN(points)) {
       setEditError('Points must be a valid number.');
-      showToast.error('Points must be a valid number');
       setEditLoading(false);
       return;
     }
     try {
+      // Here you would add your update logic (e.g., call an API to update bonus award)
+      // For now, we'll assume the update is successful and then call onEdit callback.
       onEdit();
-      showToast.success('Bonus award updated successfully');
       setIsEditModalOpen(false);
     } catch (err) {
       console.error('Error updating bonus award:', err);
       setEditError('An unexpected error occurred.');
-      showToast.error('Failed to update bonus award');
     }
     setEditLoading(false);
   };
@@ -118,11 +116,9 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
     if (!window.confirm('Are you sure you want to delete this bonus award?')) return;
     try {
       onDelete();
-      showToast.success('Bonus award deleted successfully');
       setIsEditModalOpen(false);
     } catch (err) {
       console.error('Error deleting bonus award:', err);
-      showToast.error('Failed to delete bonus award');
     }
   };
 
@@ -173,10 +169,7 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <button 
-          onClick={() => {
-            onAward();
-            showToast.success(`Awarded bonus: ${bonusAward.title}`);
-          }} 
+          onClick={onAward} 
           style={{ flex: 1, padding: '8px', backgroundColor: '#f9c74f', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
         >
           Award
