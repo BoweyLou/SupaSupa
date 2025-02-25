@@ -4,25 +4,7 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Plus,
-  Star,
-  Trophy,
-  Heart,
-  Sparkles,
-  Rocket,
-  Crown,
-  Medal,
-  PartyPopper,
-  Smile,
-  ThumbsUp,
-  Cookie,
-  IceCream,
-  Candy,
-  Gift,
-  Gamepad2,
-  Puzzle,
-  Palette,
-  Music4,
-  Bike
+  Star
 } from 'lucide-react';
 import { AVAILABLE_ICONS, AVAILABLE_COLORS } from './BonusAwardCard';
 
