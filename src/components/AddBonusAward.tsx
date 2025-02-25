@@ -24,29 +24,7 @@ import {
   Music4,
   Bike
 } from 'lucide-react';
-
-// Define available icons with their colors
-const AVAILABLE_ICONS = [
-  { icon: Star, name: 'Star', color: '#FFD700' },
-  { icon: Trophy, name: 'Trophy', color: '#FFA500' },
-  { icon: Heart, name: 'Heart', color: '#FF69B4' },
-  { icon: Sparkles, name: 'Sparkles', color: '#00CED1' },
-  { icon: Rocket, name: 'Rocket', color: '#4169E1' },
-  { icon: Crown, name: 'Crown', color: '#FFD700' },
-  { icon: Medal, name: 'Medal', color: '#C0C0C0' },
-  { icon: PartyPopper, name: 'Party', color: '#FF1493' },
-  { icon: Smile, name: 'Smile', color: '#FFD700' },
-  { icon: ThumbsUp, name: 'Thumbs Up', color: '#4CAF50' },
-  { icon: Cookie, name: 'Cookie', color: '#8B4513' },
-  { icon: IceCream, name: 'Ice Cream', color: '#FF69B4' },
-  { icon: Candy, name: 'Candy', color: '#FF1493' },
-  { icon: Gift, name: 'Gift', color: '#9C27B0' },
-  { icon: Gamepad2, name: 'Games', color: '#2196F3' },
-  { icon: Puzzle, name: 'Puzzle', color: '#FF5722' },
-  { icon: Palette, name: 'Art', color: '#4CAF50' },
-  { icon: Music4, name: 'Music', color: '#E91E63' },
-  { icon: Bike, name: 'Sports', color: '#3F51B5' }
-];
+import { AVAILABLE_ICONS, AVAILABLE_COLORS } from './BonusAwardCard';
 
 interface AddBonusAwardProps {
   onBonusAdded: () => void;
@@ -56,6 +34,7 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [selectedIcon, setSelectedIcon] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
   const [points, setPoints] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,6 +42,7 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
   const resetForm = () => {
     setTitle("");
     setSelectedIcon("");
+    setSelectedColor("");
     setPoints("");
     setError("");
   };
@@ -96,6 +76,7 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
           {
             title: title.trim(),
             icon: selectedIcon,
+            color: selectedColor || undefined, // Only include color if selected
             points: parsedPoints,
             status: 'available',
             created_at: new Date().toISOString(),
@@ -136,9 +117,27 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
             ${selectedIcon === name ? 'bg-blue-100 ring-2 ring-blue-500' : 'bg-white'}
           `}
         >
-          <IconComponent size={24} color={color} />
+          <IconComponent size={20} color={selectedColor || color} />
           <span className="text-xs text-gray-600">{name}</span>
         </div>
+      ))}
+    </div>
+  );
+
+  const ColorPickerGrid = () => (
+    <div className="grid grid-cols-10 gap-2 p-4 bg-gray-50 rounded-lg">
+      {AVAILABLE_COLORS.map((color) => (
+        <div
+          key={color}
+          onClick={() => setSelectedColor(color)}
+          className={`
+            w-6 h-6 rounded-full cursor-pointer transition-all duration-200
+            hover:scale-110 hover:shadow-md
+            ${selectedColor === color ? 'ring-2 ring-blue-500 scale-110' : ''}
+          `}
+          style={{ backgroundColor: color }}
+          title={color}
+        />
       ))}
     </div>
   );
@@ -187,10 +186,24 @@ const AddBonusAward: React.FC<AddBonusAwardProps> = ({ onBonusAdded }) => {
                       AVAILABLE_ICONS.find(i => i.name === selectedIcon)?.icon || Star,
                       { 
                         size: 24, 
-                        color: AVAILABLE_ICONS.find(i => i.name === selectedIcon)?.color 
+                        color: selectedColor || AVAILABLE_ICONS.find(i => i.name === selectedIcon)?.color 
                       }
                     )}
                     <span>{selectedIcon}</span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Select Color (Optional)</label>
+                <ColorPickerGrid />
+                {selectedColor && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded flex items-center gap-2">
+                    <span>Selected color:</span>
+                    <div 
+                      className="w-6 h-6 rounded-full" 
+                      style={{ backgroundColor: selectedColor }}
+                    ></div>
+                    <span>{selectedColor}</span>
                   </div>
                 )}
               </div>

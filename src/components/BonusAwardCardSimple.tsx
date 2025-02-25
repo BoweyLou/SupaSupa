@@ -14,6 +14,7 @@ export interface BonusAwardSimple {
   status: 'available' | 'awarded';
   awarded_at?: string;
   icon: string;
+  color?: string;
 }
 
 export interface BonusAwardCardSimpleProps {
@@ -25,6 +26,9 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
   const iconLookup = AVAILABLE_ICONS.find((i: IconConfig) => i.name === bonusAward.icon);
   // Fall back to Star icon if no matching icon is found
   const IconComponent = iconLookup ? iconLookup.icon : Star;
+  
+  // Use custom color if available, otherwise use the default color for the icon
+  const iconColor = bonusAward.color || iconLookup?.color || '#FFD700';
 
   const containerStyle: React.CSSProperties = bonusAward.status === 'awarded'
     ? {
@@ -53,12 +57,12 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
       {IconComponent && (
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
           <IconComponent 
-            size={64} 
-            fill="#f9c74f" 
+            size={32} 
+            fill={iconColor} 
             stroke="none"
             style={{ 
-              filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))',
-              transform: 'scale(1.5)'
+              filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))',
+              transform: 'scale(1.2)'
             }} 
           />
         </div>

@@ -53,6 +53,7 @@ interface BonusAward {
   assigned_child_id?: string;
   created_at?: string;
   updated_at?: string;
+  color?: string;
   // New fields for awarded instances
   instance_id?: string;
   awarded_at?: string;
@@ -957,25 +958,34 @@ export default function DashboardPage() {
     };
 
     // NEW: Handler to edit a bonus award
-    const handleEditBonus = async (bonusAwardId: string) => {
-      const bonus = bonusAwards.find((b: BonusAward) => b.id === bonusAwardId);
-      if (!bonus) return;
-      const newTitle = window.prompt('Enter new title', bonus.title);
-      if (newTitle === null) return;
-      const newIcon = window.prompt('Enter new icon', bonus.icon);
-      if (newIcon === null) return;
-      const newPointsStr = window.prompt('Enter new points', bonus.points.toString());
-      if (newPointsStr === null) return;
-      const newPoints = parseInt(newPointsStr, 10);
-      const { error } = await supabase
-         .from('bonus_awards')
-         .update({ title: newTitle, icon: newIcon, points: newPoints, updated_at: new Date().toISOString() })
-         .eq('id', bonusAwardId);
-      if (error) {
-         console.error('Error updating bonus award:', error);
-         return;
+    const handleEditBonus = async (bonusAwardId: string, updatedData: {
+      title: string;
+      icon: string;
+      color: string | null;
+      points: number;
+    }) => {
+      try {
+        const { error } = await supabase
+           .from('bonus_awards')
+           .update({ 
+             title: updatedData.title, 
+             icon: updatedData.icon, 
+             color: updatedData.color, 
+             points: updatedData.points, 
+             updated_at: new Date().toISOString() 
+           })
+           .eq('id', bonusAwardId);
+        
+        if (error) {
+           console.error('Error updating bonus award:', error);
+           return;
+        }
+        
+        fetchBonusAwards();
+      } catch (err: unknown) {
+        console.error('Error in handleEditBonus:', err);
+        setError('Failed to update bonus award');
       }
-      fetchBonusAwards();
     };
 
     // NEW: Handler to delete a bonus award
@@ -1261,7 +1271,7 @@ export default function DashboardPage() {
                                   key={bonus.id} 
                                   bonusAward={bonus}
                                   onAward={() => handleAwardBonus(bonus.id)}
-                                  onEdit={() => handleEditBonus(bonus.id)}
+                                  onEdit={(bonusAwardId, updatedData) => handleEditBonus(bonusAwardId, updatedData)}
                                   onDelete={() => handleDeleteBonus(bonus.id)}
                                 />
                               ))}
@@ -1365,7 +1375,8 @@ export default function DashboardPage() {
                                     points: b.points,
                                     status: (isAwarded ? 'awarded' : 'available') as "awarded" | "available",
                                     awarded_at: awardedAt,
-                                    icon: b.icon
+                                    icon: b.icon,
+                                    color: b.color
                                   };
                                   return (
                                     <BonusAwardCardSimple key={b.id} bonusAward={bonusForChild} hideActions={true} />

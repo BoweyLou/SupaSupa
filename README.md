@@ -11,6 +11,7 @@ A modern web application built with Next.js and Supabase, featuring authenticati
 - Responsive design
 - Task/Quest management system
 - Enhanced award system with child-specific visibility, redemption limits, and lockout periods
+- Customizable bonus awards with icon and color selection
 
 ## Getting Started
 
@@ -91,4 +92,12 @@ The project database schema has been updated to support new features, including 
 - **created_by** (uuid): References the parent who created the task.
 - **created_at / updated_at** (timestamps): Track when the task was created and last updated.
 
+### Bonus Awards
+
+The **bonus_awards** table has been enhanced with a new **color** column to support customizable icon colors:
+- **color** (varchar): Stores a hex color code for the bonus award icon.
+
+This allows parents to create more visually appealing and distinctive bonus awards by selecting both custom icons and colors.
+
 For detailed schema information, see [Docs/database_schema.md](Docs/database_schema.md).
+For information about the enhanced award system, see [docs/Features/EnhancedAwardSystem.md](docs/Features/EnhancedAwardSystem.md).

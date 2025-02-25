@@ -26,6 +26,14 @@ After an award is redeemed, it can be configured to become temporarily unavailab
 - **No Lock-out**: The award is immediately available for redemption again (if it has multiple redemptions).
 - **Days/Weeks**: The award becomes unavailable for a specified number of days or weeks after redemption.
 
+### 4. Customizable Bonus Awards
+
+Bonus awards can now be customized with:
+
+- **Icon Selection**: Choose from a variety of icons to represent different types of achievements.
+- **Custom Colors**: Select custom colors for icons to make them more visually appealing and distinctive.
+- **Flexible Points**: Assign any point value to bonus awards based on the significance of the achievement.
+
 ## How It Works
 
 ### Database Schema
@@ -44,6 +52,13 @@ The award system uses the following database tables and columns:
   - Tracks individual redemption instances
   - Allows for detailed history of award redemptions
 
+- **bonus_awards table**:
+  - `title`: Name of the bonus award
+  - `icon`: Selected icon identifier
+  - `color`: Custom color for the icon (hex code)
+  - `points`: Points value of the bonus award
+  - `status`: Current status of the award ('available' or 'awarded')
+
 ### Availability Calculation
 
 An award is considered available for redemption if:
@@ -61,6 +76,7 @@ Parents can:
 - Edit existing awards to modify these settings
 - See which children can redeem specific awards
 - Track redemption counts for awards
+- Create and customize bonus awards with different icons and colors
 
 #### Child View
 
@@ -69,6 +85,7 @@ Children:
 - See the redemption status of awards (e.g., "3 of 5 redemptions remaining")
 - See when locked-out awards will become available again
 - Cannot redeem awards that are in a lockout period or have reached their redemption limit
+- See visually appealing bonus awards with custom icons and colors
 
 ## Implementation Details
 
@@ -77,6 +94,9 @@ Children:
 - **AwardCard**: Displays award information and handles redemption
 - **AddAward**: Form for creating new awards with enhanced features
 - **Awards**: Page that displays available awards to children
+- **BonusAwardCard**: Displays bonus awards with customizable icons and colors
+- **BonusAwardCardSimple**: Simplified version for child view
+- **AddBonusAward**: Form for creating new bonus awards with icon and color selection
 
 ### Functions
 
@@ -110,4 +130,11 @@ Create an award with:
 - 30-day lockout period
 - Visible to all children
 
-This creates a monthly movie night reward that can be claimed once per month. 
+This creates a monthly movie night reward that can be claimed once per month.
+
+### Example 4: Customized Bonus Awards
+
+Create bonus awards with:
+- Different icons representing various achievements (e.g., Star for excellence, Trophy for winning)
+- Custom colors to match the achievement type or child's preference
+- Point values that reflect the significance of the achievement 

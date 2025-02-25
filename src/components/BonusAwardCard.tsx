@@ -48,6 +48,29 @@ export const AVAILABLE_ICONS = [
   { icon: Bike, name: 'Sports', color: '#3F51B5' }
 ] as const;
 
+// Define available colors for custom selection
+export const AVAILABLE_COLORS = [
+  '#FFD700', // Gold
+  '#FFA500', // Orange
+  '#FF69B4', // Hot Pink
+  '#00CED1', // Turquoise
+  '#4169E1', // Royal Blue
+  '#C0C0C0', // Silver
+  '#FF1493', // Deep Pink
+  '#4CAF50', // Green
+  '#8B4513', // Brown
+  '#9C27B0', // Purple
+  '#2196F3', // Blue
+  '#FF5722', // Deep Orange
+  '#E91E63', // Pink
+  '#3F51B5', // Indigo
+  '#F44336', // Red
+  '#009688', // Teal
+  '#673AB7', // Deep Purple
+  '#FFEB3B', // Yellow
+  '#795548', // Brown
+];
+
 // Also export the icon config type
 export type IconConfig = typeof AVAILABLE_ICONS[number];
 
@@ -60,12 +83,18 @@ interface BonusAward {
   assigned_child_id?: string;
   created_at?: string;
   updated_at?: string;
+  color?: string; // Add color property
 }
 
 interface BonusAwardCardProps {
   bonusAward: BonusAward;
   onAward: () => void;
-  onEdit: () => void;
+  onEdit: (bonusAwardId: string, updatedData: {
+    title: string;
+    icon: string;
+    color: string | null;
+    points: number;
+  }) => void;
   onDelete: () => void;
 }
 
@@ -73,6 +102,8 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(bonusAward ? bonusAward.title : '');
   const [editPoints, setEditPoints] = useState(bonusAward ? bonusAward.points.toString() : '');
+  const [editIcon, setEditIcon] = useState(bonusAward ? bonusAward.icon : '');
+  const [editColor, setEditColor] = useState(bonusAward?.color || '');
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
@@ -83,10 +114,15 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
 
   const iconConfig = AVAILABLE_ICONS.find(i => i.name === bonusAward.icon) || AVAILABLE_ICONS[0];
   const IconComponent = iconConfig?.icon || Star;
+  
+  // Use custom color if available, otherwise use the default color for the icon
+  const iconColor = bonusAward.color || iconConfig?.color || '#FFD700';
 
   const handleOpenEditModal = () => {
     setEditTitle(bonusAward.title);
     setEditPoints(bonusAward.points.toString());
+    setEditIcon(bonusAward.icon);
+    setEditColor(bonusAward.color || iconConfig?.color || '#FFD700');
     setEditError('');
     setIsEditModalOpen(true);
   };
@@ -94,21 +130,29 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setEditLoading(true);
+    
     const points = parseInt(editPoints, 10);
     if (isNaN(points)) {
       setEditError('Points must be a valid number.');
       setEditLoading(false);
       return;
     }
+    
     try {
-      // Here you would add your update logic (e.g., call an API to update bonus award)
-      // For now, we'll assume the update is successful and then call onEdit callback.
-      onEdit();
+      // Pass the updated values to the parent component
+      onEdit(bonusAward.id, {
+        title: editTitle,
+        icon: editIcon,
+        color: editColor || null,
+        points: points
+      });
+      
       setIsEditModalOpen(false);
     } catch (err) {
       console.error('Error updating bonus award:', err);
       setEditError('An unexpected error occurred.');
     }
+    
     setEditLoading(false);
   };
 
@@ -121,6 +165,44 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
       console.error('Error deleting bonus award:', err);
     }
   };
+
+  const IconPickerGrid = () => (
+    <div className="grid grid-cols-5 gap-2 p-4 bg-gray-50 rounded-lg max-h-60 overflow-y-auto">
+      {AVAILABLE_ICONS.map(({ icon: IconComponent, name, color }) => (
+        <div
+          key={name}
+          onClick={() => setEditIcon(name)}
+          className={`
+            p-2 rounded-lg cursor-pointer transition-all duration-200 
+            flex flex-col items-center justify-center gap-1
+            hover:bg-gray-200
+            ${editIcon === name ? 'bg-blue-100 ring-2 ring-blue-500' : 'bg-white'}
+          `}
+        >
+          <IconComponent size={20} color={editColor || color} />
+          <span className="text-xs text-gray-600">{name}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const ColorPickerGrid = () => (
+    <div className="grid grid-cols-10 gap-2 p-4 bg-gray-50 rounded-lg">
+      {AVAILABLE_COLORS.map((color) => (
+        <div
+          key={color}
+          onClick={() => setEditColor(color)}
+          className={`
+            w-6 h-6 rounded-full cursor-pointer transition-all duration-200
+            hover:scale-110 hover:shadow-md
+            ${editColor === color ? 'ring-2 ring-blue-500 scale-110' : ''}
+          `}
+          style={{ backgroundColor: color }}
+          title={color}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div style={{
@@ -147,7 +229,7 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
 
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
         <div style={{ marginRight: '12px' }}>
-          <IconComponent size={40} color={iconConfig?.color || '#FFD700'} />
+          <IconComponent size={28} color={iconColor} />
         </div>
         <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>
           {bonusAward.title || 'Untitled Bonus'}
@@ -201,6 +283,27 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
                   required
                   style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }}
                 />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Select Icon</label>
+                <IconPickerGrid />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Select Color</label>
+                <ColorPickerGrid />
+                {editIcon && editColor && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded flex items-center gap-2">
+                    <span>Preview:</span>
+                    {React.createElement(
+                      AVAILABLE_ICONS.find(i => i.name === editIcon)?.icon || Star,
+                      { 
+                        size: 24, 
+                        color: editColor 
+                      }
+                    )}
+                    <span>{editIcon}</span>
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap:'10px' }}>
                 <button type="button" onClick={() => setIsEditModalOpen(false)} style={{ padding:'8px 12px', backgroundColor:'#ccc', border:'none', borderRadius:'4px', cursor:'pointer' }}>
