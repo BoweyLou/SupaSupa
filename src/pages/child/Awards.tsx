@@ -54,12 +54,77 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
         console.error('Error fetching awards:', error.message);
         showToast.error('Error loading awards');
       } else if (data) {
-        setAwards(data as Award[]);
+        // Process awards to calculate availability
+        const processedAwards = (data || []).map(award => {
+          // Check if award is visible to this child
+          const isVisibleToChild = 
+            !award.allowed_children_ids || 
+            award.allowed_children_ids.length === 0 || 
+            award.allowed_children_ids.includes(activeChildId);
+          
+          if (!isVisibleToChild) {
+            return null; // Skip awards not visible to this child
+          }
+          
+          // Calculate if award is in lockout period
+          let isInLockout = false;
+          let availableAfter = '';
+          
+          if (award.last_redeemed_at && award.lockout_period) {
+            const lastRedeemed = new Date(award.last_redeemed_at);
+            const now = new Date();
+            
+            // Calculate lockout end date
+            const lockoutEnd = new Date(lastRedeemed);
+            if (award.lockout_unit === 'weeks') {
+              lockoutEnd.setDate(lockoutEnd.getDate() + (award.lockout_period * 7));
+            } else {
+              lockoutEnd.setDate(lockoutEnd.getDate() + award.lockout_period);
+            }
+            
+            isInLockout = now < lockoutEnd;
+            if (isInLockout) {
+              // Format date for display
+              availableAfter = lockoutEnd.toLocaleDateString();
+            }
+          }
+          
+          // Calculate remaining redemptions
+          const remainingRedemptions = award.redemption_limit === null 
+            ? null 
+            : Math.max(0, award.redemption_limit - (award.redemption_count || 0));
+          
+          // Check if award is available for redemption
+          const isAvailable = 
+            // Not available if already fully redeemed
+            !(remainingRedemptions !== null && remainingRedemptions <= 0) &&
+            // Not available if in lockout period
+            !isInLockout;
+          
+          return {
+            ...award,
+            // Map database column names to camelCase for the component
+            allowedChildrenIds: award.allowed_children_ids,
+            redemptionLimit: award.redemption_limit,
+            redemptionCount: award.redemption_count,
+            lockoutPeriod: award.lockout_period,
+            lockoutUnit: award.lockout_unit,
+            lastRedeemedAt: award.last_redeemed_at,
+            // Add computed properties
+            isAvailable,
+            availableAfter,
+            remainingRedemptions,
+            // Map database column names to component props
+            familyId: award.family_id
+          };
+        }).filter(Boolean); // Remove null entries (awards not visible to this child)
+        
+        setAwards(processedAwards as Award[]);
       }
       setLoading(false);
     }
     fetchAwards();
-  }, [childFamilyId]);
+  }, [childFamilyId, activeChildId]);
 
   const handleClaimAward = async (awardId: string) => {
     // Prevent multiple claim attempts
@@ -74,6 +139,23 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
       if (!award) {
         console.error('Award not found:', awardId);
         showToast.error('Award not found');
+        setClaimInProgress(false);
+        return;
+      }
+      
+      // Check if award is available for redemption
+      if (award.isAvailable === false) {
+        let errorMessage = 'This award is not available';
+        
+        if (award.remainingRedemptions !== undefined && 
+            award.remainingRedemptions !== null && 
+            award.remainingRedemptions <= 0) {
+          errorMessage = 'This award has been fully redeemed';
+        } else if (award.availableAfter) {
+          errorMessage = `This award will be available after ${award.availableAfter}`;
+        }
+        
+        showToast.error(errorMessage);
         setClaimInProgress(false);
         return;
       }
@@ -161,7 +243,13 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
       // Update the local awards list to mark this award as awarded
       setAwards(prevAwards => 
         prevAwards.map(a => 
-          a.id === award.id ? { ...a, awarded: true } : a
+          a.id === award.id ? { 
+            ...a, 
+            awarded: true,
+            // For unlimited awards, update the redemption count and lockout
+            redemptionCount: a.redemptionCount !== undefined ? (a.redemptionCount + 1) : 1,
+            lastRedeemedAt: new Date().toISOString()
+          } : a
         )
       );
       
@@ -193,6 +281,7 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
                 award={award} 
                 onClaim={handleClaimAward} 
                 hideActions={claimInProgress}
+                currentChildId={activeChildId}
               />
             ))}
             {awards.filter(award => !award.awarded).length === 0 && (

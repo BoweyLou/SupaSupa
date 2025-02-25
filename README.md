@@ -9,6 +9,8 @@ A modern web application built with Next.js and Supabase, featuring authenticati
 - Modern UI with Tailwind CSS
 - TypeScript support
 - Responsive design
+- Task/Quest management system
+- Enhanced award system with child-specific visibility, redemption limits, and lockout periods
 
 ## Getting Started
 

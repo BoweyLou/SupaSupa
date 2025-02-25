@@ -1007,7 +1007,63 @@ export default function DashboardPage() {
           setError('Failed to fetch awards');
           return;
         }
-        setAwards(awardsData || []);
+        
+        // Process awards to calculate availability
+        const processedAwards = (awardsData || []).map(award => {
+          // Calculate if award is in lockout period
+          let isInLockout = false;
+          let availableAfter = '';
+          
+          if (award.last_redeemed_at && award.lockout_period) {
+            const lastRedeemed = new Date(award.last_redeemed_at);
+            const now = new Date();
+            
+            // Calculate lockout end date
+            const lockoutEnd = new Date(lastRedeemed);
+            if (award.lockout_unit === 'weeks') {
+              lockoutEnd.setDate(lockoutEnd.getDate() + (award.lockout_period * 7));
+            } else {
+              lockoutEnd.setDate(lockoutEnd.getDate() + award.lockout_period);
+            }
+            
+            isInLockout = now < lockoutEnd;
+            if (isInLockout) {
+              // Format date for display
+              availableAfter = lockoutEnd.toLocaleDateString();
+            }
+          }
+          
+          // Calculate remaining redemptions
+          const remainingRedemptions = award.redemption_limit === null 
+            ? null 
+            : Math.max(0, award.redemption_limit - (award.redemption_count || 0));
+          
+          // Check if award is available for redemption
+          const isAvailable = 
+            // Not available if already fully redeemed
+            !(remainingRedemptions !== null && remainingRedemptions <= 0) &&
+            // Not available if in lockout period
+            !isInLockout;
+          
+          return {
+            ...award,
+            // Map database column names to camelCase for the component
+            allowedChildrenIds: award.allowed_children_ids,
+            redemptionLimit: award.redemption_limit,
+            redemptionCount: award.redemption_count,
+            lockoutPeriod: award.lockout_period,
+            lockoutUnit: award.lockout_unit,
+            lastRedeemedAt: award.last_redeemed_at,
+            // Add computed properties
+            isAvailable,
+            availableAfter,
+            remainingRedemptions,
+            // Map database column names to component props
+            familyId: award.family_id
+          };
+        });
+        
+        setAwards(processedAwards);
       } catch (err: unknown) {
         console.error('Unexpected error fetching awards:', err);
         setError('An unexpected error occurred while fetching awards');
@@ -1022,7 +1078,15 @@ export default function DashboardPage() {
     }, [dbUser, fetchAwards]);
 
     // Add handlers for editing and deleting awards
-    const handleEditAward = async (awardId: string, updatedAward: { title: string, description?: string, points: number }) => {
+    const handleEditAward = async (awardId: string, updatedAward: { 
+      title: string, 
+      description?: string, 
+      points: number,
+      allowedChildrenIds?: string[],
+      redemptionLimit?: number | null,
+      lockoutPeriod?: number,
+      lockoutUnit?: 'days' | 'weeks'
+    }) => {
       try {
         const { error } = await supabase
           .from('awards')
@@ -1030,6 +1094,10 @@ export default function DashboardPage() {
             title: updatedAward.title, 
             description: updatedAward.description, 
             points: updatedAward.points,
+            allowed_children_ids: updatedAward.allowedChildrenIds,
+            redemption_limit: updatedAward.redemptionLimit,
+            lockout_period: updatedAward.lockoutPeriod,
+            lockout_unit: updatedAward.lockoutUnit,
             updated_at: new Date().toISOString()
           })
           .eq('id', awardId);
@@ -1155,7 +1223,11 @@ export default function DashboardPage() {
                                             fetchChildTasks();
                                         }} 
                                     />
-                                    <AddAward onAwardAdded={fetchAwards} familyId={familyId ?? undefined} />
+                                    <AddAward 
+                                      onAwardAdded={fetchAwards} 
+                                      familyId={familyId ?? undefined} 
+                                      childAccounts={children}
+                                    />
                                 </div>
                             )}
                             {activeTasks.length > 0 ? (
@@ -1211,6 +1283,7 @@ export default function DashboardPage() {
                                     isParentView={true}
                                     onEdit={handleEditAward}
                                     onDelete={handleDeleteAward}
+                                    childAccounts={children}
                                   />
                                 ))}
                               </div>
