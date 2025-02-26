@@ -195,6 +195,9 @@
   padding: 2rem;
   max-width: 90%;
   width: 500px;
+  position: relative;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 .brutalist-modal__title {
@@ -293,6 +296,15 @@
   
   .brutalist-modal {
     padding: 1.25rem;
-    width: 100%;
+    width: 95%;
+    max-width: 95%;
+    max-height: 80vh;
+    margin: 0.5rem;
+    box-shadow: 5px 5px 0 #000;
+  }
+  
+  .brutalist-card__button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
   }
 } 

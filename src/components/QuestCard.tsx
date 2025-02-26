@@ -243,17 +243,17 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       </div>
 
       {showCelebration && (
-        <div className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center pointer-events-none animate-fadeInOut z-50">
+        <div className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center pointer-events-none animate-fadeInOut z-40">
           <span className="text-4xl">🎉 QUEST COMPLETED! 🎉</span>
         </div>
       )}
 
       {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="brutalist-modal max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="brutalist-modal max-w-md w-[95%] max-h-[90vh] overflow-y-auto m-2 p-4 relative">
             <h2 className="brutalist-modal__title">Edit Quest</h2>
             {editError && <p className="text-red-500 mb-4">{editError}</p>}
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            <form onSubmit={handleEditSubmit} className="space-y-4 pb-4">
               <div>
                 <label className="brutalist-modal__label">Title</label>
                 <input
@@ -363,7 +363,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
                   <option value="one-off">One-off</option>
                 </select>
               </div>
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-end space-x-2 sticky bottom-0 pt-4 bg-inherit">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
