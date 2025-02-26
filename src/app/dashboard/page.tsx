@@ -21,6 +21,8 @@ import AwardCard, { Award } from '@/components/AwardCard';
 import { Session } from '@supabase/supabase-js';
 import Awards from '@/pages/child/Awards';
 import ClaimedAwards from '@/components/ClaimedAwards';
+import DashboardAccordion from '@/components/DashboardAccordion';
+import ViewToggle, { ViewMode } from '@/components/ViewToggle';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -152,7 +154,10 @@ export default function DashboardPage() {
     // For a parent, 'parent' will refer to the parent's dashboard; other tabs will have child ids.
     const [activeTab, setActiveTab] = useState<string>('parent');
 
-    // NEW: State for Bonus Awards
+    // NEW: State for view mode (tabs or accordion)
+    const [viewMode, setViewMode] = useState<ViewMode>('accordion');
+
+    // NEW: State for bonus Awards
     const [bonusAwards, setBonusAwards] = useState<BonusAward[]>([]);
 
     // Add new state for child selector
@@ -756,7 +761,8 @@ export default function DashboardPage() {
                 console.error('Error updating parent record with family_id:', updateUserError);
               }
             }
-          }
+          };
+          fetchFamilyAndChildren();
         };
         fetchFamilyAndChildren();
       }
@@ -1158,6 +1164,330 @@ export default function DashboardPage() {
       }
     };
 
+    // NEW: Load view mode preference from localStorage on initial render
+    useEffect(() => {
+      if (typeof window !== 'undefined') {
+        const savedViewMode = localStorage.getItem('dashboardViewMode');
+        if (savedViewMode === 'tabs' || savedViewMode === 'accordion') {
+          setViewMode(savedViewMode as ViewMode);
+        }
+      }
+    }, []);
+
+    // NEW: Save view mode preference to localStorage when it changes
+    const handleViewModeChange = (newMode: ViewMode) => {
+      setViewMode(newMode);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dashboardViewMode', newMode);
+      }
+    };
+
+    // NEW: Function to render child content for accordion or tabs
+    const renderChildContent = useCallback((child: Child) => {
+      const childTasksList = (childTasks[child.id] || []).filter((task: Quest) => task.status !== 'completed');
+      const completedTasksForThisChild = (childTasks[child.id] || []).filter((task: Quest) => task.status === 'completed' && isToday(task.completedAt));
+      
+      return (
+        <div>
+          <PointsDisplay showFamilyPoints={false} childAccounts={[child]} />
+          
+          <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>
+            <ChildDashboardSection
+              child={child}
+              tasks={childTasksList}
+              onComplete={handleTaskCompletion}
+            />
+          </DashboardSection>
+
+          {completedTasksForThisChild.length > 0 && (
+            <DashboardSection title="Today's Completed Tasks">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+                {completedTasksForThisChild.map((task: Quest) => (
+                  <CompletedTaskCard key={task.id} task={task} />
+                ))}
+              </div>
+            </DashboardSection>
+          )}
+
+          <DashboardSection title="Bonus Awards">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+              {bonusAwards && bonusAwards.map((b: BonusAward) => {
+                const isAwarded = (b.instances || []).some((instance: BonusAwardInstance) => instance.assigned_child_id === child.id);
+                const awardedAt = (b.instances || []).find((instance: BonusAwardInstance) => instance.assigned_child_id === child.id)?.awarded_at;
+                const bonusForChild = {
+                  id: b.id,
+                  title: b.title,
+                  points: b.points,
+                  status: (isAwarded ? 'awarded' : 'available') as "awarded" | "available",
+                  awarded_at: awardedAt,
+                  icon: b.icon,
+                  color: b.color
+                };
+                return (
+                  <BonusAwardCardSimple key={b.id} bonusAward={bonusForChild} hideActions={true} />
+                );
+              })}
+            </div>
+          </DashboardSection>
+
+          <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
+            <Awards activeChildId={child.id} />
+          </DashboardSection>
+
+          <DashboardSection title="Claimed Rewards">
+            <ClaimedAwards activeChildId={child.id} />
+          </DashboardSection>
+
+          {/* Add view toggle for child users too */}
+          <DashboardSection title="Settings">
+            <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+          </DashboardSection>
+        </div>
+      );
+    }, [childTasks, bonusAwards, handleTaskCompletion, viewMode, handleViewModeChange]);
+
+    // NEW: Function to render parent content for accordion or tabs
+    const renderParentContent = useCallback(() => {
+      return (
+        <>
+          {/* Parent Dashboard Content */}
+          {/* Child Accounts Section for Parent (Child Management) */}
+          <section className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Child Accounts</h2>
+              {children && children.length > 0 ? (
+                  <ul className="mb-4">
+                      {children.map((child: Child) => (
+                          <ChildAccountCard
+                            key={child.id}
+                            child={child}
+                            isEditing={editingChildId === child.id}
+                            editingChildName={editingChildName}
+                            onEditChange={handleEditChange}
+                            onSaveEdit={handleSaveEdit}
+                            onCancelEdit={handleCancelEdit}
+                            onEditClick={handleEditClick}
+                            onDelete={handleDeleteChild}
+                          />
+                      ))}
+                  </ul>
+              ) : (
+                  <p className="mb-4">No child accounts found.</p>
+              )}
+              <form onSubmit={handleAddChild} className="flex items-center">
+                  <input
+                      type="text"
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="Child Name"
+                      className="border border-gray-300 p-2 rounded mr-2"
+                  />
+                  <button
+                      type="submit"
+                      disabled={childLoading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded"
+                  >
+                      {childLoading ? 'Adding...' : 'Add Child Account'}
+                  </button>
+              </form>
+          </section>
+
+          {/* Manual Recurring Tasks Reset Button */}
+          <section className="mb-8">
+            <button 
+              onClick={handleManualResetRecurringTasks}
+              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+            >
+              Manual Reset Recurring Tasks
+            </button>
+          </section>
+
+          {/* Parent Tasks Section */}
+          <DashboardSection title="Tasks" toggleable={true} defaultExpanded={true}>
+              {dbUser && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <AddTask 
+                          parentId={dbUser.id} 
+                          availableChildren={children} 
+                          onTaskAdded={() => {
+                              fetchTasks();
+                              fetchChildTasks();
+                          }} 
+                      />
+                      <AddAward 
+                        onAwardAdded={fetchAwards} 
+                        familyId={familyId ?? undefined} 
+                        childAccounts={children}
+                      />
+                  </div>
+              )}
+              {activeTasks.length > 0 ? (
+                  activeTasks.map((task: Quest) => (
+                      <QuestCard 
+                          key={task.id} 
+                          quest={task} 
+                          userRole={
+                              typeof user?.user_metadata?.role === 'string' &&
+                              (user.user_metadata.role === 'child' || user.user_metadata.role === 'parent')
+                                  ? (user.user_metadata.role as "child" | "parent")
+                                  : 'parent'
+                          } 
+                          onComplete={handleTaskCompletion} 
+                      />
+                  ))
+              ) : (
+                  <p className="mb-4">No tasks found.</p>
+              )}
+          </DashboardSection>
+
+          {/* NEW: Bonus Awards Section for Parent Dashboard */}
+          <DashboardSection title="Bonus Awards" toggleable={true} defaultExpanded={true}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
+            </div>
+            { bonusAwards.filter((b: BonusAward) => b.status === 'available').length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                { bonusAwards.filter((b: BonusAward) => b.status === 'available').map((bonus: BonusAward) => (
+                  <BonusAwardCard 
+                    key={bonus.id} 
+                    bonusAward={bonus}
+                    onAward={() => handleAwardBonus(bonus.id)}
+                    onEdit={(bonusAwardId, updatedData) => handleEditBonus(bonusAwardId, updatedData)}
+                    onDelete={() => handleDeleteBonus(bonus.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+                <p className="mb-4">No bonus awards available.</p>
+            )}
+          </DashboardSection>
+
+          {/* NEW: Add a new section to display regular awards (rewards) added via AddAward */}
+          {dbUser && dbUser.role === 'parent' && (
+            <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
+              { awards && awards.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  { awards.map((award: Award) => (
+                    <AwardCard 
+                      key={award.id} 
+                      award={award} 
+                      isParentView={true}
+                      onEdit={handleEditAward}
+                      onDelete={handleDeleteAward}
+                      childAccounts={children}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="mb-4">No awards available.</p>
+              )}
+            </DashboardSection>
+          )}
+
+          {/* Quest History Section */}
+          <section className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Quest History</h2>
+              {completedTasks.length > 0 ? (
+                  <table className="min-w-full bg-white">
+                      <thead>
+                          <tr>
+                              <th className="px-4 py-2 border">Task Name</th>
+                              <th className="px-4 py-2 border">Description</th>
+                              <th className="px-4 py-2 border">Completed At</th>
+                              <th className="px-4 py-2 border">Child</th>
+                              <th className="px-4 py-2 border">Points Awarded</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {completedTasks.map((task: Quest) => (
+                              <tr key={task.id}>
+                                  <td className="px-4 py-2 border">{task.title}</td>
+                                  <td className="px-4 py-2 border">{task.description}</td>
+                                  <td className="px-4 py-2 border">{task.completedAt}</td>
+                                  <td className="px-4 py-2 border">{children.find((child: Child) => child.id === task.assignedChildId)?.name || 'Unknown Child'}</td>
+                                  <td className="px-4 py-2 border">{task.points}</td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              ) : (
+                  <p>No completed quests</p>
+              )}
+          </section>
+
+          {/* NEW: View Mode Toggle */}
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Dashboard Settings</h2>
+            <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+          </section>
+        </>
+      );
+    }, [
+      children,
+      dbUser,
+      childName,
+      childLoading,
+      editingChildId,
+      editingChildName,
+      handleEditChange,
+      handleSaveEdit,
+      handleCancelEdit,
+      handleEditClick,
+      handleDeleteChild,
+      handleAddChild,
+      handleManualResetRecurringTasks,
+      activeTasks,
+      familyId,
+      fetchTasks,
+      fetchChildTasks,
+      fetchAwards,
+      handleTaskCompletion,
+      user,
+      bonusAwards,
+      handleAwardBonus,
+      handleEditBonus,
+      handleDeleteBonus,
+      awards,
+      handleEditAward,
+      handleDeleteAward,
+      completedTasks,
+      viewMode,
+      handleViewModeChange
+    ]);
+
+    // NEW: Create accordion sections based on children and parent
+    const accordionSections = useMemo(() => {
+      const sections = [];
+      
+      // Add sections for each child
+      if (children && children.length > 0) {
+        children.forEach(child => {
+          sections.push({
+            id: child.id,
+            title: child.name,
+            content: renderChildContent(child),
+            isParent: false
+          });
+        });
+      }
+      
+      // Add parent section at the end
+      if (dbUser && dbUser.role === 'parent') {
+        sections.push({
+          id: 'parent',
+          title: 'Parent Dashboard',
+          content: renderParentContent(),
+          isParent: true
+        });
+      }
+      
+      return sections;
+    }, [
+      children, 
+      dbUser, 
+      renderChildContent,
+      renderParentContent
+    ]);
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -1184,248 +1514,31 @@ export default function DashboardPage() {
                     />
                 )}
 
-                {/* Tabbed Interface for Parent and Child Dashboards */}
-                <div className="mt-4">
-                  <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                {/* NEW: Conditional rendering based on view mode */}
+                {dbUser && viewMode === 'tabs' ? (
+                  // Original Tabbed Interface
+                  <div className="mt-4">
+                    <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-                  <div className="p-4 bg-white shadow">
-                    {activeTab === 'parent' && (
-                      <>
-                        {/* Parent Dashboard Content */}
-                        {/* Child Accounts Section for Parent (Child Management) */}
-                        <section className="mb-8">
-                            <h2 className="text-2xl font-semibold mb-4">Child Accounts</h2>
-                            {children && children.length > 0 ? (
-                                <ul className="mb-4">
-                                    {children.map((child: Child) => (
-                                        <ChildAccountCard
-                                          key={child.id}
-                                          child={child}
-                                          isEditing={editingChildId === child.id}
-                                          editingChildName={editingChildName}
-                                          onEditChange={handleEditChange}
-                                          onSaveEdit={handleSaveEdit}
-                                          onCancelEdit={handleCancelEdit}
-                                          onEditClick={handleEditClick}
-                                          onDelete={handleDeleteChild}
-                                        />
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="mb-4">No child accounts found.</p>
-                            )}
-                            <form onSubmit={handleAddChild} className="flex items-center">
-                                <input
-                                    type="text"
-                                    value={childName}
-                                    onChange={(e) => setChildName(e.target.value)}
-                                    placeholder="Child Name"
-                                    className="border border-gray-300 p-2 rounded mr-2"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={childLoading}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded"
-                                >
-                                    {childLoading ? 'Adding...' : 'Add Child Account'}
-                                </button>
-                            </form>
-                        </section>
-
-                        {/* Manual Recurring Tasks Reset Button */}
-                        <section className="mb-8">
-                          <button 
-                            onClick={handleManualResetRecurringTasks}
-                            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-                          >
-                            Manual Reset Recurring Tasks
-                          </button>
-                        </section>
-
-                        {/* Parent Tasks Section */}
-                        <DashboardSection title="Tasks" toggleable={true} defaultExpanded={true}>
-                            {dbUser && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <AddTask 
-                                        parentId={dbUser.id} 
-                                        availableChildren={children} 
-                                        onTaskAdded={() => {
-                                            fetchTasks();
-                                            fetchChildTasks();
-                                        }} 
-                                    />
-                                    <AddAward 
-                                      onAwardAdded={fetchAwards} 
-                                      familyId={familyId ?? undefined} 
-                                      childAccounts={children}
-                                    />
-                                </div>
-                            )}
-                            {activeTasks.length > 0 ? (
-                                activeTasks.map((task: Quest) => (
-                                    <QuestCard 
-                                        key={task.id} 
-                                        quest={task} 
-                                        userRole={
-                                            typeof user?.user_metadata?.role === 'string' &&
-                                            (user.user_metadata.role === 'child' || user.user_metadata.role === 'parent')
-                                                ? (user.user_metadata.role as "child" | "parent")
-                                                : 'parent'
-                                        } 
-                                        onComplete={handleTaskCompletion} 
-                                    />
-                                ))
-                            ) : (
-                                <p className="mb-4">No tasks found.</p>
-                            )}
-                        </DashboardSection>
-
-                        {/* NEW: Bonus Awards Section for Parent Dashboard */}
-                        <DashboardSection title="Bonus Awards" toggleable={true} defaultExpanded={true}>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                              <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
-                          </div>
-                          { bonusAwards.filter((b: BonusAward) => b.status === 'available').length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                              { bonusAwards.filter((b: BonusAward) => b.status === 'available').map((bonus: BonusAward) => (
-                                <BonusAwardCard 
-                                  key={bonus.id} 
-                                  bonusAward={bonus}
-                                  onAward={() => handleAwardBonus(bonus.id)}
-                                  onEdit={(bonusAwardId, updatedData) => handleEditBonus(bonusAwardId, updatedData)}
-                                  onDelete={() => handleDeleteBonus(bonus.id)}
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                              <p className="mb-4">No bonus awards available.</p>
-                          )}
-                        </DashboardSection>
-
-                        {/* NEW: Add a new section to display regular awards (rewards) added via AddAward */}
-                        {dbUser && dbUser.role === 'parent' && (
-                          <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
-                            { awards && awards.length > 0 ? (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                { awards.map((award: Award) => (
-                                  <AwardCard 
-                                    key={award.id} 
-                                    award={award} 
-                                    isParentView={true}
-                                    onEdit={handleEditAward}
-                                    onDelete={handleDeleteAward}
-                                    childAccounts={children}
-                                  />
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="mb-4">No awards available.</p>
-                            )}
-                          </DashboardSection>
-                        )}
-
-                        {/* Quest History Section */}
-                        <section className="mb-8">
-                            <h2 className="text-2xl font-semibold mb-4">Quest History</h2>
-                            {completedTasks.length > 0 ? (
-                                <table className="min-w-full bg-white">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-4 py-2 border">Task Name</th>
-                                            <th className="px-4 py-2 border">Description</th>
-                                            <th className="px-4 py-2 border">Completed At</th>
-                                            <th className="px-4 py-2 border">Child</th>
-                                            <th className="px-4 py-2 border">Points Awarded</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {completedTasks.map((task: Quest) => (
-                                            <tr key={task.id}>
-                                                <td className="px-4 py-2 border">{task.title}</td>
-                                                <td className="px-4 py-2 border">{task.description}</td>
-                                                <td className="px-4 py-2 border">{task.completedAt}</td>
-                                                <td className="px-4 py-2 border">{children.find((child: Child) => child.id === task.assignedChildId)?.name || 'Unknown Child'}</td>
-                                                <td className="px-4 py-2 border">{task.points}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <p>No completed quests</p>
-                            )}
-                        </section>
-                      </>
-                    )}
-
-                    {activeTab !== 'parent' && (
-                      <>
-                        {selectedChild && (
-                          <PointsDisplay showFamilyPoints={false} childAccounts={[selectedChild]} />
-                        )}
-                        <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>{selectedChild ? (
-                            <ChildDashboardSection
-                              child={selectedChild}
-                              tasks={(childTasks[selectedChild.id] || []).filter((task: Quest) => task.status !== 'completed')}
-                              onComplete={handleTaskCompletion}
-                            />
-                          ) : (
-                            <p>No data available for the selected child.</p>
-                          )}
-                        </DashboardSection>
-
-                        {selectedChild && completedTasksForChild.length > 0 && (
-                          <DashboardSection title="Today's Completed Tasks">
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                              {completedTasksForChild.map((task: Quest) => (
-                                <CompletedTaskCard key={task.id} task={task} />
-                              ))}
-                            </div>
-                          </DashboardSection>
-                        )}
-
-                        {/* Updated Bonus Awards section in child dashboard view */}
-                        {selectedChild && (
-                          <DashboardSection title="Bonus Awards">
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                              {bonusAwards && bonusAwards.map((b: BonusAward) => {
-                                  const isAwarded = (b.instances || []).some((instance: BonusAwardInstance) => instance.assigned_child_id === selectedChild.id);
-                                  const awardedAt = (b.instances || []).find((instance: BonusAwardInstance) => instance.assigned_child_id === selectedChild.id)?.awarded_at;
-                                  const bonusForChild = {
-                                    id: b.id,
-                                    title: b.title,
-                                    points: b.points,
-                                    status: (isAwarded ? 'awarded' : 'available') as "awarded" | "available",
-                                    awarded_at: awardedAt,
-                                    icon: b.icon,
-                                    color: b.color
-                                  };
-                                  return (
-                                    <BonusAwardCardSimple key={b.id} bonusAward={bonusForChild} hideActions={true} />
-                                  );
-                              })}
-                            </div>
-                          </DashboardSection>
-                        )}
-
-                        {/* Child view for available rewards */}
-                        <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
-                          {selectedChild && (
-                            <>
-                              <Awards activeChildId={selectedChild.id} />
-                            </>
-                          )}
-                        </DashboardSection>
-
-                        {/* New section for claimed rewards */}
-                        {selectedChild && (
-                          <DashboardSection title="Claimed Rewards">
-                            <ClaimedAwards activeChildId={selectedChild.id} />
-                          </DashboardSection>
-                        )}
-                      </>
-                    )}
+                    <div className="p-4 bg-white shadow">
+                      {activeTab === 'parent' ? (
+                        renderParentContent()
+                      ) : (
+                        <>
+                          {selectedChild && renderChildContent(selectedChild)}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  // NEW: Accordion Interface
+                  <div className="mt-4">
+                    <DashboardAccordion 
+                      sections={accordionSections}
+                      gridLayout={true} // Enable grid layout for child sections on tablet+
+                    />
+                  </div>
+                )}
             </main>
 
             <ChildSelectorModal
