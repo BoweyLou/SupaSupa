@@ -82,8 +82,10 @@ export type Database = {
           allowed_children_ids: string[] | null
           awarded: boolean
           created_at: string
+          custom_colors: Json | null
           description: string | null
           family_id: string | null
+          icon: string | null
           id: string
           last_redeemed_at: string | null
           lockout_period: number | null
@@ -98,8 +100,10 @@ export type Database = {
           allowed_children_ids?: string[] | null
           awarded?: boolean
           created_at?: string
+          custom_colors?: Json | null
           description?: string | null
           family_id?: string | null
+          icon?: string | null
           id?: string
           last_redeemed_at?: string | null
           lockout_period?: number | null
@@ -114,8 +118,10 @@ export type Database = {
           allowed_children_ids?: string[] | null
           awarded?: boolean
           created_at?: string
+          custom_colors?: Json | null
           description?: string | null
           family_id?: string | null
+          icon?: string | null
           id?: string
           last_redeemed_at?: string | null
           lockout_period?: number | null

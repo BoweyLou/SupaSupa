@@ -1079,7 +1079,10 @@ export default function DashboardPage() {
             availableAfter,
             remainingRedemptions,
             // Map database column names to component props
-            familyId: award.family_id
+            familyId: award.family_id,
+            // Add icon and customColors mappings
+            icon: award.icon,
+            customColors: award.custom_colors
           };
         });
         
@@ -1105,7 +1108,13 @@ export default function DashboardPage() {
       allowedChildrenIds?: string[],
       redemptionLimit?: number | null,
       lockoutPeriod?: number,
-      lockoutUnit?: 'days' | 'weeks'
+      lockoutUnit?: 'days' | 'weeks',
+      icon?: string,
+      customColors?: {
+        borderColor?: string;
+        backgroundColor?: string;
+        shadowColor?: string;
+      }
     }) => {
       try {
         const { error } = await supabase
@@ -1118,6 +1127,8 @@ export default function DashboardPage() {
             redemption_limit: updatedAward.redemptionLimit,
             lockout_period: updatedAward.lockoutPeriod,
             lockout_unit: updatedAward.lockoutUnit,
+            icon: updatedAward.icon,
+            custom_colors: updatedAward.customColors,
             updated_at: new Date().toISOString()
           })
           .eq('id', awardId);

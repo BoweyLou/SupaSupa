@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Plus, Users, RefreshCw, Clock } from 'lucide-react';
+import IconSelector from './IconSelector';
 
 // Props for the AddAward component
 export interface AddAwardProps {
@@ -25,6 +26,11 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
   const [customRedemptionLimit, setCustomRedemptionLimit] = useState('2');
   const [lockoutPeriod, setLockoutPeriod] = useState('');
   const [lockoutUnit, setLockoutUnit] = useState<'days' | 'weeks'>('days');
+  // New state variables for brutalist design
+  const [selectedIcon, setSelectedIcon] = useState<string>('Award');
+  const [customBorderColor, setCustomBorderColor] = useState('');
+  const [customBgColor, setCustomBgColor] = useState('');
+  const [customShadowColor, setCustomShadowColor] = useState('');
 
   // Handler for form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -68,6 +74,13 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
     setLoading(true);
     setError('');
     try {
+      // Prepare custom colors object
+      const customColors = {
+        borderColor: customBorderColor || undefined,
+        backgroundColor: customBgColor || undefined,
+        shadowColor: customShadowColor || undefined
+      };
+      
       const { error: dbError } = await supabase
         .from('awards')
         .insert([{ 
@@ -80,7 +93,9 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
           redemption_limit: finalRedemptionLimit,
           redemption_count: 0,
           lockout_period: finalLockoutPeriod,
-          lockout_unit: finalLockoutUnit
+          lockout_unit: finalLockoutUnit,
+          icon: selectedIcon,
+          custom_colors: Object.values(customColors).some(Boolean) ? customColors : null
         }]);
       if (dbError) {
         setError(dbError.message);
@@ -94,6 +109,10 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
         setCustomRedemptionLimit('2');
         setLockoutPeriod('');
         setLockoutUnit('days');
+        setSelectedIcon('Award');
+        setCustomBorderColor('');
+        setCustomBgColor('');
+        setCustomShadowColor('');
         setIsModalOpen(false);
       }
     } catch (err: unknown) {
@@ -263,8 +282,8 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
                     value={lockoutPeriod}
                     onChange={(e) => setLockoutPeriod(e.target.value)}
                     min="0"
-                    placeholder="No lockout"
-                    className="p-2 border border-gray-200 rounded w-20 mr-2"
+                    className="p-2 w-20 border border-gray-200 rounded mr-2"
+                    placeholder="0"
                   />
                   <select
                     value={lockoutUnit}
@@ -276,8 +295,76 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
                   </select>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Leave empty for no lockout period
+                  Time before the award can be claimed again (leave empty for no lockout)
                 </p>
+              </div>
+              
+              {/* Icon Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Icon
+                </label>
+                <IconSelector 
+                  selectedIcon={selectedIcon} 
+                  onSelectIcon={(icon) => setSelectedIcon(icon)} 
+                />
+              </div>
+              
+              {/* Custom Colors */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Custom Colors (optional)
+                </label>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <label className="inline-block w-24 text-sm">Border:</label>
+                    <input
+                      type="color"
+                      value={customBorderColor || "#000000"}
+                      onChange={(e) => setCustomBorderColor(e.target.value)}
+                      className="p-1 w-16 h-8 border border-gray-200 rounded"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setCustomBorderColor('')}
+                      className="ml-2 text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="flex items-center">
+                    <label className="inline-block w-24 text-sm">Background:</label>
+                    <input
+                      type="color"
+                      value={customBgColor || "#ffffff"}
+                      onChange={(e) => setCustomBgColor(e.target.value)}
+                      className="p-1 w-16 h-8 border border-gray-200 rounded"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setCustomBgColor('')}
+                      className="ml-2 text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="flex items-center">
+                    <label className="inline-block w-24 text-sm">Shadow:</label>
+                    <input
+                      type="color"
+                      value={customShadowColor || "#888888"}
+                      onChange={(e) => setCustomShadowColor(e.target.value)}
+                      className="p-1 w-16 h-8 border border-gray-200 rounded"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setCustomShadowColor('')}
+                      className="ml-2 text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
               </div>
               
               <div className="flex justify-end space-x-2">

@@ -115,7 +115,10 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
             availableAfter,
             remainingRedemptions,
             // Map database column names to component props
-            familyId: award.family_id
+            familyId: award.family_id,
+            // Add icon and customColors mappings
+            icon: award.icon,
+            customColors: award.custom_colors
           };
         }).filter(Boolean); // Remove null entries (awards not visible to this child)
         
