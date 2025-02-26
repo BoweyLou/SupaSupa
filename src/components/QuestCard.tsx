@@ -1,10 +1,15 @@
 // src/components/QuestCard.tsx
 // Quest Card component: Displays a task card with title, description, points reward, and role-based actions.
 // This component is based on the QuestCardFeature.md plan and will serve as the UI element for tasks in the dashboard.
+"use client";
+
 import React, { useState } from 'react';
-import { Award, Zap, Settings, Trash } from 'lucide-react';
+import { Award, Zap } from 'lucide-react';
 import { updateTask, deleteTask } from '@/repositories/tasksRepository';
 import StarDisplay from './StarDisplay';
+import { getIconByName } from './IconSelector';
+import { useTheme } from '@/contexts/ThemeContext';
+import IconSelector from './IconSelector';
 
 export interface Quest {
   id: string;
@@ -15,6 +20,13 @@ export interface Quest {
   status: 'assigned' | 'in-progress' | 'pending' | 'completed' | 'failed';
   assignedChildId?: string;
   completedAt?: string; // Optional property to track the date the task was completed
+  // New properties for brutalist design
+  icon?: string; // Icon name for the quest
+  customColors?: {
+    borderColor?: string;
+    backgroundColor?: string;
+    shadowColor?: string;
+  };
 }
 
 export interface QuestCardProps {
@@ -35,6 +47,13 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
   const [editFrequency, setEditFrequency] = useState(quest.frequency || 'daily');
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const { theme } = useTheme();
+  
+  // New state for brutalist design
+  const [selectedIcon, setSelectedIcon] = useState<string>(quest.icon || 'CheckCircle');
+  const [customBorderColor, setCustomBorderColor] = useState(quest.customColors?.borderColor || '');
+  const [customBgColor, setCustomBgColor] = useState(quest.customColors?.backgroundColor || '');
+  const [customShadowColor, setCustomShadowColor] = useState(quest.customColors?.shadowColor || '');
 
   const handleComplete = () => {
     if (onComplete) onComplete(quest.id);
@@ -70,12 +89,22 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       setEditLoading(false);
       return;
     }
+    
+    // Prepare custom colors object
+    const customColors = {
+      borderColor: customBorderColor || undefined,
+      backgroundColor: customBgColor || undefined,
+      shadowColor: customShadowColor || undefined
+    };
+    
     try {
       const payload = {
         title: editTitle,
         description: editDescription,
         reward_points: points,
-        frequency: editFrequency
+        frequency: editFrequency,
+        icon: selectedIcon,
+        custom_colors: Object.values(customColors).some(Boolean) ? customColors : undefined
       };
       await updateTask(quest.id, payload);
       if (onComplete) onComplete(quest.id, 'edit');
@@ -97,139 +126,237 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
     }
   };
 
+  // Get the icon component
+  const IconComponent = getIconByName(quest.icon || 'CheckCircle');
+  
+  // Apply custom colors or use theme defaults
+  const cardStyle = {
+    '--brutalist-card-border-color': quest.customColors?.borderColor || theme.borderColor,
+    '--brutalist-card-bg-color': quest.customColors?.backgroundColor || theme.backgroundColor,
+    '--brutalist-card-shadow-color': quest.customColors?.shadowColor || theme.shadowColor,
+  } as React.CSSProperties;
+
+  // Get status display
+  const getStatusDisplay = () => {
+    switch (quest.status) {
+      case 'pending':
+        return <div className="brutalist-card__status brutalist-card__status--pending">PENDING APPROVAL</div>;
+      case 'completed':
+        return <div className="brutalist-card__status brutalist-card__status--awarded">COMPLETED</div>;
+      case 'failed':
+        return <div className="brutalist-card__status brutalist-card__status--unavailable">FAILED</div>;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center">
-          <Award size={24} className="text-gray-500 mr-2" />
-          <h3 className="text-lg font-semibold text-gray-800">{quest.title}</h3>
+    <div className="brutalist-card brutalist-card--themed" style={cardStyle}>
+      <div className="brutalist-card__header">
+        <div className="brutalist-card__icon">
+          <IconComponent />
         </div>
-        <div className="text-sm font-medium text-gray-600">
-          <Zap size={16} className="inline mr-1" />
-          {quest.points} pts
-        </div>
+        <h3 className="brutalist-card__title">{quest.title}</h3>
+        <div className="brutalist-card__points">{quest.points} pts</div>
       </div>
       
-      <p className="text-sm text-gray-700 mb-2">{quest.description}</p>
+      <div className="brutalist-card__message">{quest.description}</div>
       
-      <div className="mt-2 mb-2">
-        <div className="star-display-large">
-          <StarDisplay 
-            points={quest.points} 
-            size="lg"
-          />
-        </div>
+      <div className="brutalist-card__stars">
+        <StarDisplay 
+          points={quest.points} 
+          size="lg"
+        />
       </div>
       
       {userRole === 'parent' && (
-        <div className="space-y-1">
+        <div className="brutalist-card__info">
           {quest.frequency && (
-            <p className="text-sm text-gray-600">
-              <strong>Frequency:</strong> {quest.frequency}
-            </p>
+            <div className="brutalist-card__info-item">
+              <Zap size={16} />
+              <span><strong>Frequency:</strong> {quest.frequency}</span>
+            </div>
           )}
-          <p className="text-sm text-gray-600">
-            <strong>Status:</strong> {quest.status}
-          </p>
-          {quest.assignedChildId && (
-            <p className="text-sm text-gray-600">
-              <strong>Assigned to:</strong> {childNameMapping && childNameMapping[quest.assignedChildId] ? childNameMapping[quest.assignedChildId] : 'Unknown'}
-            </p>
+          <div className="brutalist-card__info-item">
+            <Award size={16} />
+            <span><strong>Status:</strong> {quest.status}</span>
+          </div>
+          {quest.assignedChildId && childNameMapping && (
+            <div className="brutalist-card__info-item">
+              <Award size={16} />
+              <span>
+                <strong>Assigned to:</strong> {childNameMapping[quest.assignedChildId] || 'Unknown'}
+              </span>
+            </div>
           )}
         </div>
       )}
 
-      {!hideActions && userRole === 'child' && quest.status === 'assigned' && (
-        <button
-          className="mt-2 w-full py-3 px-4 animated-gradient text-white rounded transition-colors text-base"
-          onClick={handleComplete}
-        >
-          I did it
-        </button>
-      )}
+      <div className="brutalist-card__actions">
+        {!hideActions && userRole === 'child' && quest.status === 'assigned' && (
+          <button
+            className="brutalist-card__button brutalist-card__button--claim"
+            onClick={handleComplete}
+          >
+            I DID IT
+          </button>
+        )}
 
-      {!hideActions && userRole === 'parent' && (
-        <div className="mt-2 flex space-x-2">
-          {quest.status === 'pending' && (
-            <>
+        {!hideActions && userRole === 'parent' && (
+          <>
+            {quest.status === 'pending' && (
+              <div className="flex gap-2">
+                <button
+                  className="brutalist-card__button brutalist-card__button--approve"
+                  onClick={handleApprove}
+                >
+                  APPROVE
+                </button>
+                <button
+                  className="brutalist-card__button brutalist-card__button--reject"
+                  onClick={handleReject}
+                >
+                  REJECT
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2 mt-2">
               <button
-                className="w-full py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-                onClick={handleApprove}
+                onClick={handleOpenEditModal}
+                className="brutalist-card__button"
+                title="Edit"
               >
-                Approve
+                EDIT
               </button>
               <button
-                className="w-full py-1 px-3 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors text-sm"
-                onClick={handleReject}
+                onClick={handleDelete}
+                className="brutalist-card__button brutalist-card__button--reject"
+                title="Delete"
               >
-                Reject
+                DELETE
               </button>
-            </>
-          )}
-          <button
-            onClick={handleOpenEditModal}
-            className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
-            title="Edit"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleDelete}
-            className="p-1 text-red-500 hover:text-red-700 transition-colors"
-            title="Delete"
-          >
-            <Trash className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+            </div>
+          </>
+        )}
+        
+        {getStatusDisplay()}
+      </div>
 
       {showCelebration && (
-        <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center pointer-events-none animate-fadeInOut">
-          <span className="text-2xl text-yellow-500">🎉 Quest Completed! 🎉</span>
+        <div className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center pointer-events-none animate-fadeInOut z-50">
+          <span className="text-4xl">🎉 QUEST COMPLETED! 🎉</span>
         </div>
       )}
 
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Edit Quest</h2>
+          <div className="brutalist-modal max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="brutalist-modal__title">Edit Quest</h2>
             {editError && <p className="text-red-500 mb-4">{editError}</p>}
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
+                <label className="brutalist-modal__label">Title</label>
                 <input
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   required
-                  className="w-full p-2 border border-gray-200 rounded"
+                  className="brutalist-modal__input"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
+                <label className="brutalist-modal__label">Description</label>
                 <textarea
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   required
-                  className="w-full p-2 border border-gray-200 rounded"
+                  className="brutalist-modal__input"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Reward Points</label>
+                <label className="brutalist-modal__label">Reward Points</label>
                 <input
                   type="number"
                   value={editRewardPoints}
                   onChange={(e) => setEditRewardPoints(e.target.value)}
                   required
-                  className="w-full p-2 border border-gray-200 rounded"
+                  className="brutalist-modal__input"
                 />
               </div>
+              
+              {/* Icon selection */}
+              <IconSelector 
+                selectedIcon={selectedIcon}
+                onSelectIcon={setSelectedIcon}
+              />
+              
+              {/* Custom colors */}
               <div>
-                <label className="block text-sm font-medium mb-1">Frequency</label>
+                <label className="brutalist-modal__label">Custom Colors (Optional)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-sm">Border</label>
+                    <div className="flex items-center">
+                      <input
+                        type="color"
+                        value={customBorderColor || theme.borderColor}
+                        onChange={(e) => setCustomBorderColor(e.target.value)}
+                        className="w-8 h-8 border-2 border-black"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCustomBorderColor('')}
+                        className="ml-1 text-xs underline"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm">Background</label>
+                    <div className="flex items-center">
+                      <input
+                        type="color"
+                        value={customBgColor || theme.backgroundColor}
+                        onChange={(e) => setCustomBgColor(e.target.value)}
+                        className="w-8 h-8 border-2 border-black"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCustomBgColor('')}
+                        className="ml-1 text-xs underline"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm">Shadow</label>
+                    <div className="flex items-center">
+                      <input
+                        type="color"
+                        value={customShadowColor || theme.shadowColor}
+                        onChange={(e) => setCustomShadowColor(e.target.value)}
+                        className="w-8 h-8 border-2 border-black"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCustomShadowColor('')}
+                        className="ml-1 text-xs underline"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label className="brutalist-modal__label">Frequency</label>
                 <select
                   value={editFrequency}
                   onChange={(e) => setEditFrequency(e.target.value)}
-                  className="w-full p-2 border border-gray-200 rounded"
+                  className="brutalist-modal__input"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -240,40 +367,29 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors text-sm"
+                  className="brutalist-card__button"
                 >
-                  Cancel
+                  CANCEL
                 </button>
                 <button
                   type="submit"
                   disabled={editLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
+                  className="brutalist-card__button brutalist-card__button--primary"
                 >
-                  {editLoading ? 'Saving...' : 'Save'}
+                  {editLoading ? 'SAVING...' : 'SAVE'}
                 </button>
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                  className="brutalist-card__button brutalist-card__button--reject"
                 >
-                  Delete Quest
+                  DELETE
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; }
-          50% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-        .animate-fadeInOut {
-          animation: fadeInOut 3s ease-in-out;
-        }
-      `}</style>
     </div>
   );
 };

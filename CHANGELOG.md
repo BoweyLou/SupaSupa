@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brutalist design system
+  - Created new brutalist CSS styles in `src/app/brutalist.css`
+  - Updated AwardCard and QuestCard components to use brutalist design
+  - Added support for custom icons and colors in cards
+  - Created comprehensive documentation in `docs/BrutalistDesignSystem.md`
+  - Added database migration for new icon and custom_colors fields
+  - Updated ThemeProvider integration for consistent styling
+- Comprehensive database documentation
+  - Created detailed database schema documentation in `docs/database_schema.md`
+  - Added database functions documentation in `docs/database_functions.md`
+  - Created database relationships documentation with ERD in `docs/database_relationships.md`
+  - Added documentation README with navigation guide in `docs/README.md`
+  - Updated main README.md to reference the new documentation
 - Color selection feature for bonus awards
   - Added color column to bonus_awards table
   - Updated BonusAwardCard, BonusAwardCardSimple, and AddBonusAward components to support custom colors
@@ -18,8 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added bonus awards section to README.md
 
 ### Changed
+- Redesigned AwardCard and QuestCard components with brutalist styling
+- Updated database schema to support custom icons and colors
+- Enhanced ThemeCustomizer with icon selection capabilities
 - Reduced icon size in bonus award cards for better visual balance
 - Improved UI for bonus award creation and editing with color preview
+- Reorganized documentation structure for better maintainability
 
 ## [1.0.0] - 2024-02-24
 

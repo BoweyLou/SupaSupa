@@ -79,6 +79,12 @@ interface TaskResponse {
   assigned_child_id?: string;
   updated_at: string;
   next_occurrence?: string;
+  icon?: string;
+  custom_colors?: {
+    borderColor?: string;
+    backgroundColor?: string;
+    shadowColor?: string;
+  };
 }
 
 // ChildDashboardSection: A reusable component to display tasks for a child account
@@ -372,7 +378,9 @@ export default function DashboardPage() {
           frequency: task.frequency,
           status: mapStatus(task.status) as Quest['status'],
           assignedChildId: task.assigned_child_id,
-          completedAt: task.updated_at
+          completedAt: task.updated_at,
+          icon: task.icon,
+          customColors: task.custom_colors
         }));
         console.log('Mapped tasks (quests):', quests);
         setTasks(quests);
@@ -394,7 +402,9 @@ export default function DashboardPage() {
             points: task.reward_points,
             frequency: task.frequency,
             status: mapStatus(task.status) as Quest['status'],
-            completedAt: task.updated_at
+            completedAt: task.updated_at,
+            icon: task.icon,
+            customColors: task.custom_colors
           }));
         } catch (error) {
           console.error('Error fetching tasks for child', child.id, error);

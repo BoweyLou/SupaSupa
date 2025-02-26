@@ -12,6 +12,7 @@ A modern web application built with Next.js and Supabase, featuring authenticati
 - Task/Quest management system
 - Enhanced award system with child-specific visibility, redemption limits, and lockout periods
 - Customizable bonus awards with icon and color selection
+- Brutalist design system with customizable cards, colors, and icons
 
 ## Getting Started
 
@@ -58,6 +59,10 @@ src/
 ├── lib/                   # Shared libraries
 │   └── supabase.ts        # Supabase client
 └── components/            # Shared components
+docs/                      # Documentation
+├── database_schema.md     # Database schema documentation
+├── database_functions.md  # Database functions documentation
+└── database_relationships.md # Database relationships documentation
 ```
 
 ## Development
@@ -66,6 +71,16 @@ src/
 - `pnpm build` - Build for production
 - `pnpm start` - Start production server
 - `pnpm lint` - Run ESLint
+
+## Documentation
+
+Comprehensive documentation about the SupaSupa application is available in the `docs/` directory:
+
+- [Database Schema](docs/database_schema.md) - Detailed information about all tables in the database
+- [Database Functions](docs/database_functions.md) - Documentation of all database functions
+- [Database Relationships](docs/database_relationships.md) - Overview of the relationships between tables
+
+See the [Documentation README](docs/README.md) for more information.
 
 ## Contributing
 
@@ -91,6 +106,8 @@ The project database schema has been updated to support new features, including 
 - **assigned_child_id** (uuid): References the child who is assigned the task.
 - **created_by** (uuid): References the parent who created the task.
 - **created_at / updated_at** (timestamps): Track when the task was created and last updated.
+- **icon** (text): Stores the name of the icon to display on the card.
+- **custom_colors** (jsonb): Stores custom colors for the card border, background, and shadow.
 
 ### Bonus Awards
 
@@ -99,5 +116,24 @@ The **bonus_awards** table has been enhanced with a new **color** column to supp
 
 This allows parents to create more visually appealing and distinctive bonus awards by selecting both custom icons and colors.
 
-For detailed schema information, see [Docs/database_schema.md](Docs/database_schema.md).
+### Awards
+
+The **awards** table has been updated with new fields to support the brutalist design system:
+- **icon** (text): Stores the name of the icon to display on the card.
+- **custom_colors** (jsonb): Stores custom colors for the card border, background, and shadow.
+
+## Brutalist Design System
+
+The application now features a brutalist design system that provides a bold, geometric aesthetic with high contrast and customizable elements. Key features include:
+
+- Customizable card components with thick borders and drop shadows
+- Status indicators for different states (pending, completed, failed, locked)
+- Brutalist buttons with hover and active states
+- Styled form elements and modals
+- Color pickers for customizing card appearances
+- Icon selectors for choosing from a library of icons
+
+For detailed information about the brutalist design system, see [docs/BrutalistDesignSystem.md](docs/BrutalistDesignSystem.md).
+
+For detailed schema information, see [docs/database_schema.md](docs/database_schema.md).
 For information about the enhanced award system, see [docs/Features/EnhancedAwardSystem.md](docs/Features/EnhancedAwardSystem.md).

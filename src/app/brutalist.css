@@ -1,0 +1,298 @@
+/* Brutalist Design System CSS */
+
+/* Base Brutalist Card Styles */
+.brutalist-card {
+  border: 3px solid var(--brutalist-card-border-color, #000);
+  background-color: var(--brutalist-card-bg-color, #fff);
+  box-shadow: 6px 6px 0 var(--brutalist-card-shadow-color, #000);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brutalist-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--brutalist-card-shadow-color, #000);
+}
+
+.brutalist-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--brutalist-card-border-color, #000);
+  padding-bottom: 0.75rem;
+}
+
+.brutalist-card__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brutalist-card__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--brutalist-card-border-color, #000);
+  padding: 0.5rem;
+}
+
+.brutalist-card__icon svg {
+  height: 1.5rem;
+  width: 1.5rem;
+  fill: #fff;
+  color: #fff;
+}
+
+.brutalist-card__points {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.brutalist-card__content {
+  margin-bottom: 1rem;
+}
+
+.brutalist-card__message {
+  margin-top: 1rem;
+  color: var(--brutalist-card-text-color, #000);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border-bottom: 2px solid var(--brutalist-card-border-color, #000);
+  padding-bottom: 1rem;
+  font-weight: 600;
+}
+
+.brutalist-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 2px solid var(--brutalist-card-border-color, #000);
+  padding-top: 0.75rem;
+  margin-top: auto;
+}
+
+/* Status Indicators */
+.brutalist-card__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  border: 2px solid #000;
+}
+
+.brutalist-card__status--pending {
+  background-color: #ffde59;
+}
+
+.brutalist-card__status--awarded {
+  background-color: #a3ffb3;
+}
+
+.brutalist-card__status--unavailable {
+  background-color: #ff8c8c;
+}
+
+.brutalist-card__status--locked {
+  background-color: #d3d3d3;
+}
+
+/* Brutalist Buttons */
+.brutalist-card__button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 3px solid var(--brutalist-card-border-color, #000);
+  background-color: #fff;
+  color: #000;
+  position: relative;
+  transition: all 0.2s ease;
+  box-shadow: 5px 5px 0 var(--brutalist-card-shadow-color, #000);
+  overflow: hidden;
+  text-decoration: none;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.brutalist-card__button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 var(--brutalist-card-shadow-color, #000);
+}
+
+.brutalist-card__button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--brutalist-card-shadow-color, #000);
+}
+
+.brutalist-card__button--primary {
+  background-color: var(--brutalist-card-button-primary-bg, #000);
+  color: var(--brutalist-card-button-primary-text, #fff);
+}
+
+.brutalist-card__button--approve:hover {
+  background-color: var(--brutalist-card-button-approve-bg, #296fbb);
+  border-color: var(--brutalist-card-button-approve-bg, #296fbb);
+  color: #fff;
+  box-shadow: 5px 5px 0 var(--brutalist-card-button-approve-shadow, #004280);
+}
+
+.brutalist-card__button--reject:hover {
+  background-color: var(--brutalist-card-button-reject-bg, #ff0000);
+  border-color: var(--brutalist-card-button-reject-bg, #ff0000);
+  color: #fff;
+  box-shadow: 5px 5px 0 var(--brutalist-card-button-reject-shadow, #800000);
+}
+
+.brutalist-card__button--claim:hover {
+  background-color: var(--brutalist-card-button-claim-bg, #4CAF50);
+  border-color: var(--brutalist-card-button-claim-bg, #4CAF50);
+  color: #fff;
+  box-shadow: 5px 5px 0 var(--brutalist-card-button-claim-shadow, #2E7D32);
+}
+
+/* Brutalist Form Elements */
+.brutalist-modal__input {
+  border: 2px solid #000;
+  padding: 0.5rem;
+  font-family: inherit;
+  background-color: #fff;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.brutalist-modal__input:focus {
+  outline: none;
+  box-shadow: 3px 3px 0 #000;
+}
+
+.brutalist-modal__label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+/* Brutalist Modal */
+.brutalist-modal {
+  border: 3px solid #000;
+  background-color: #fff;
+  box-shadow: 10px 10px 0 #000;
+  padding: 2rem;
+  max-width: 90%;
+  width: 500px;
+}
+
+.brutalist-modal__title {
+  font-weight: 900;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid black;
+}
+
+.brutalist-modal__section {
+  margin-bottom: 1.5rem;
+}
+
+/* Color Picker */
+.brutalist-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.brutalist-color-option {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #000;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.brutalist-color-option:hover {
+  transform: scale(1.1);
+}
+
+.brutalist-color-option.selected {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+}
+
+/* Icon Selector */
+.brutalist-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.brutalist-icon-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid #000;
+  background-color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.brutalist-icon-option:hover {
+  background-color: #f0f0f0;
+}
+
+.brutalist-icon-option.selected {
+  background-color: #ffde59;
+}
+
+/* Animation for celebration */
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-fadeInOut {
+  animation: fadeInOut 3s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .brutalist-card {
+    padding: 1rem;
+  }
+  
+  .brutalist-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .brutalist-card__footer {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  
+  .brutalist-modal {
+    padding: 1.25rem;
+    width: 100%;
+  }
+} 
