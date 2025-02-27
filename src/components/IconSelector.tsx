@@ -30,7 +30,6 @@ import {
   // Additional icons for kids activities and chores
   Home,
   Bath,
-  Baby,
   Bed,
   Bike,
   BookOpen,
@@ -42,9 +41,8 @@ import {
   Clapperboard,
   Drumstick,
   Footprints,
-  Glasses,
   GraduationCap,
-  Droplets,
+  Droplets, 
   Shirt,
   Flower,
   Utensils,
@@ -61,8 +59,7 @@ import {
   Wind,
   VolumeX,
   Timer,
-  Ruler,
-  X
+  Ruler
 } from 'lucide-react';
 
 // Define icon sets
@@ -139,7 +136,7 @@ const iconSets = {
     { name: 'Cat', component: Cat },
     { name: 'Cooking', component: Drumstick },
     { name: 'Movies', component: Clapperboard },
-    { name: 'Sports', component: Footprints },
+    { name: 'Exercise', component: Footprints },
     { name: 'Garden', component: Flower },
     { name: 'Car', component: Car }
   ]

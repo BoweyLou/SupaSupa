@@ -93,7 +93,7 @@ Icons for various kid-friendly activities:
 - Cat (cat care)
 - Cooking (kitchen/cooking tasks)
 - Movies (screen time/movie watching)
-- Sports (physical activities)
+- Exercise (physical activities)
 - Garden (gardening)
 - Car (travel/errands)
 
