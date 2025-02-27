@@ -60,6 +60,8 @@ export interface AwardCardProps {
     }
   }) => void;
   onDelete?: (awardId: string) => void;
+  // New callback for reviving a fully redeemed award
+  onRevive?: (awardId: string) => void;
   hideActions?: boolean;
   currentFamilyId?: string; // current user's family id
   childAccounts?: Array<{ id: string, name: string }>; // Available child accounts for selection
@@ -73,6 +75,7 @@ const AwardCard: React.FC<AwardCardProps> = ({
   isParentView = false, 
   onEdit, 
   onDelete, 
+  onRevive,
   hideActions = false, 
   childAccounts = [],
   currentChildId
@@ -154,10 +157,12 @@ const AwardCard: React.FC<AwardCardProps> = ({
   
   // Calculate remaining redemptions
   const remainingRedemptions = useMemo(() => {
+    // If already awarded, show 0 remaining redemptions
+    if (award.awarded) return 0;
     if (award.redemptionLimit === null) return null; // Unlimited
     if (award.redemptionLimit === undefined) return null; // Not set
     return Math.max(0, award.redemptionLimit - (award.redemptionCount || 0));
-  }, [award.redemptionLimit, award.redemptionCount]);
+  }, [award.redemptionLimit, award.redemptionCount, award.awarded]);
   
   // Check if award is available for redemption
   const isAvailableForRedemption = useMemo(() => {
@@ -435,11 +440,31 @@ const AwardCard: React.FC<AwardCardProps> = ({
               'FULLY REDEEMED' : 
               'NOT AVAILABLE'
             }
+            {/* Add REVIVE button for parent view when award is fully redeemed but not in lockout */}
+            {isParentView && !isInLockout && remainingRedemptions !== null && remainingRedemptions <= 0 && onRevive && (
+              <button
+                className="brutalist-card__button brutalist-card__button--claim mt-2"
+                onClick={() => onRevive(award.id)}
+              >
+                REVIVE AWARD
+              </button>
+            )}
           </div>
         )}
         
         {award.awarded && (
-          <div className="brutalist-card__status brutalist-card__status--awarded">AWARDED!</div>
+          <div className="brutalist-card__status brutalist-card__status--awarded">
+            AWARDED!
+            {/* Add REVIVE button for awarded awards in parent view */}
+            {isParentView && onRevive && (
+              <button
+                className="brutalist-card__button brutalist-card__button--claim mt-2"
+                onClick={() => onRevive(award.id)}
+              >
+                REVIVE AWARD
+              </button>
+            )}
+          </div>
         )}
       </div>
 

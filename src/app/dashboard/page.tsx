@@ -128,12 +128,14 @@ interface User {
 
 export default function DashboardPage() {
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [dbUser, setDBUser] = useState<DBUser | null>(null);
+    const [children, setChildren] = useState<Child[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // State for child account management
     const [familyId, setFamilyId] = useState<string | null>(null);
-    const [children, setChildren] = useState<Child[]>([]);
     const [childName, setChildName] = useState('');
     const [childLoading, setChildLoading] = useState(false);
 
@@ -143,9 +145,6 @@ export default function DashboardPage() {
 
     // New state for tasks/quests (parent's tasks)
     const [tasks, setTasks] = useState<Quest[]>([]);
-
-    // New state for the current user's record from our users table
-    const [dbUser, setDbUser] = useState<DBUser | null>(null);
 
     // New state for child tasks mapping child id to its tasks
     const [childTasks, setChildTasks] = useState<{ [key: string]: Quest[] }>({});
@@ -254,14 +253,14 @@ export default function DashboardPage() {
                             console.error('Error creating new DB user:', insertError);
                         } else {
                             console.log('Created new DB user:', newUser);
-                            setDbUser(newUser);
+                            setDBUser(newUser);
                         }
                     } else {
                         console.error('Error fetching db user:', error);
                     }
                 } else if (data) {
                     console.log('Fetched DB user:', data);
-                    setDbUser(data);
+                    setDBUser(data);
                 }
             };
             fetchDBUser();
@@ -1161,6 +1160,35 @@ export default function DashboardPage() {
       }
     };
 
+    // New function to revive a fully redeemed award
+    const handleReviveAward = async (awardId: string) => {
+      if (!window.confirm('Do you want to revive this award? This will:\n\n- Reset the redemption count to 0\n- Allow it to be claimed again\n- Remove the "Awarded" status')) return;
+      
+      try {
+        // Reset the redemption count to 0 and clear the last redeemed date
+        const { error } = await supabase
+          .from('awards')
+          .update({ 
+            redemption_count: 0,
+            last_redeemed_at: null,
+            awarded: false, // In case it was marked as awarded
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', awardId);
+
+        if (error) throw error;
+        
+        // Show success message
+        setSuccessMessage('Award has been revived and can now be claimed again!');
+        
+        // Refresh awards list
+        fetchAwards();
+      } catch (err: unknown) {
+        console.error('Error reviving award:', err);
+        setError('Failed to revive award');
+      }
+    };
+
     // NEW: Load view mode preference from localStorage on initial render
     useEffect(() => {
       if (typeof window !== 'undefined') {
@@ -1370,7 +1398,9 @@ export default function DashboardPage() {
                       isParentView={true}
                       onEdit={handleEditAward}
                       onDelete={handleDeleteAward}
+                      onRevive={handleReviveAward}
                       childAccounts={children}
+                      currentFamilyId={dbUser?.family_id}
                     />
                   ))}
                 </div>
@@ -1499,8 +1529,19 @@ export default function DashboardPage() {
 
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 {error && (
-                    <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                    <div className="error-message mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                         {error}
+                    </div>
+                )}
+                {successMessage && (
+                    <div className="success-message mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                        {successMessage}
+                        <button 
+                            className="ml-2 text-sm underline" 
+                            onClick={() => setSuccessMessage(null)}
+                        >
+                            Dismiss
+                        </button>
                     </div>
                 )}
 
