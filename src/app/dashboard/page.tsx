@@ -566,7 +566,7 @@ export default function DashboardPage() {
     };
 
     // Updated handleTaskCompletion to use repository functions
-    const handleTaskCompletion = async (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => {
+    const handleTaskCompletion = useCallback(async (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => {
       if (action === 'edit' || action === 'delete') {
         await fetchTasks();
         if (children && children.length > 0) {
@@ -631,7 +631,7 @@ export default function DashboardPage() {
         console.error('Error in handleTaskCompletion:', err);
         setError('Failed to complete task');
       }
-    };
+    }, [children, fetchTasks, fetchChildTasks, updateChildPoints]);
 
     // Temporary manual reset for recurring tasks (for local development)
     const handleManualResetRecurringTasks = async () => {
@@ -1200,12 +1200,12 @@ export default function DashboardPage() {
     }, []);
 
     // NEW: Save view mode preference to localStorage when it changes
-    const handleViewModeChange = (newMode: ViewMode) => {
+    const handleViewModeChange = useCallback((newMode: ViewMode) => {
       setViewMode(newMode);
       if (typeof window !== 'undefined') {
         localStorage.setItem('dashboardViewMode', newMode);
       }
-    };
+    }, []);
 
     // NEW: Function to render child content for accordion or tabs
     const renderChildContent = useCallback((child: Child) => {
@@ -1226,7 +1226,7 @@ export default function DashboardPage() {
 
           {completedTasksForThisChild.length > 0 && (
             <DashboardSection title="Today's Completed Tasks">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
                 {completedTasksForThisChild.map((task: Quest) => (
                   <CompletedTaskCard key={task.id} task={task} />
                 ))}
@@ -1235,7 +1235,7 @@ export default function DashboardPage() {
           )}
 
           <DashboardSection title="Bonus Awards">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
               {bonusAwards && bonusAwards.map((b: BonusAward) => {
                 const isAwarded = (b.instances || []).some((instance: BonusAwardInstance) => instance.assigned_child_id === child.id);
                 const awardedAt = (b.instances || []).find((instance: BonusAwardInstance) => instance.assigned_child_id === child.id)?.awarded_at;
@@ -1370,7 +1370,7 @@ export default function DashboardPage() {
                 <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
             </div>
             { bonusAwards.filter((b: BonusAward) => b.status === 'available').length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
                 { bonusAwards.filter((b: BonusAward) => b.status === 'available').map((bonus: BonusAward) => (
                   <BonusAwardCard 
                     key={bonus.id} 
@@ -1390,7 +1390,7 @@ export default function DashboardPage() {
           {dbUser && dbUser.role === 'parent' && (
             <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
               { awards && awards.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
                   { awards.map((award: Award) => (
                     <AwardCard 
                       key={award.id} 
@@ -1476,6 +1476,7 @@ export default function DashboardPage() {
       awards,
       handleEditAward,
       handleDeleteAward,
+      handleReviveAward,
       completedTasks,
       viewMode,
       handleViewModeChange

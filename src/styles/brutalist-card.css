@@ -1,7 +1,7 @@
 /* Modern Card Styles - Updated from Brutalist */
 .brutalist-card {
   width: 100%;
-  max-width: 300px;
+  max-width: 400px; /* Increased from 300px to make cards wider and fill the screen better on mobile */
   display: inline-block;
   background-color: #fff; /* Default white background for the card body */
   padding: 0; /* Remove padding as we'll handle it in child elements */
@@ -14,6 +14,42 @@
   position: relative;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
   overflow: hidden; /* Ensure gradient stays within card boundaries */
+}
+
+/* Simple card variant - for BonusAwardCardSimple */
+.brutalist-card--simple {
+  max-width: 240px;
+  min-height: 180px;
+  margin-bottom: 1rem;
+  margin-right: 0.5rem;
+}
+
+.brutalist-card--simple .brutalist-card__header-wrapper {
+  height: 100px;
+  margin-bottom: -30px;
+}
+
+.brutalist-card--simple .brutalist-card__icon {
+  width: 40px;
+  height: 40px;
+}
+
+.brutalist-card--simple .brutalist-card__icon svg {
+  padding: 6px;
+}
+
+.brutalist-card--simple h3 {
+  font-size: 1rem !important;
+  margin-top: 35px !important;
+}
+
+.brutalist-card--simple .brutalist-card__points {
+  font-size: 0.75rem;
+}
+
+.brutalist-card--simple .brutalist-card__stars svg {
+  width: 16px;
+  height: 16px;
 }
 
 .brutalist-card:hover {

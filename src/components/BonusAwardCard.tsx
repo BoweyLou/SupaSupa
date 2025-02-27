@@ -24,6 +24,8 @@ import {
   Settings
 } from 'lucide-react';
 import StarDisplay from './StarDisplay';
+import { createPortal } from 'react-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Define available icons with their colors - keep in sync with AddBonusAward
 export const AVAILABLE_ICONS = [
@@ -106,6 +108,7 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
   const [editColor, setEditColor] = useState(bonusAward?.color || '');
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const { theme } = useTheme();
 
   if (!bonusAward || !bonusAward.id) {
     console.error('Invalid bonus award data:', bonusAward);
@@ -117,6 +120,20 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
   
   // Use custom color if available, otherwise use the default color for the icon
   const iconColor = bonusAward.color || iconConfig?.color || '#FFD700';
+
+  // Create custom colors based on the icon color or use theme defaults
+  const customColors = {
+    borderColor: iconColor || theme.borderColor,
+    backgroundColor: `${iconColor}33` || theme.backgroundColor, // Add 33 (20% opacity) to the hex color
+    shadowColor: `${iconColor}66` || theme.shadowColor, // Add 66 (40% opacity) to the hex color
+  };
+
+  // Apply custom colors
+  const cardStyle = {
+    '--brutalist-card-border-color': customColors.borderColor,
+    '--brutalist-card-bg-color': customColors.backgroundColor,
+    '--brutalist-card-shadow-color': customColors.shadowColor,
+  } as React.CSSProperties;
 
   const handleOpenEditModal = () => {
     setEditTitle(bonusAward.title);
@@ -204,92 +221,117 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
     </div>
   );
 
+  // Check if dark mode is enabled
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  
+  // Get the card background color based on theme
+  const cardBgColor = isDarkMode ? '#1f2937' : '#ffffff';
+
   return (
-    <div style={{
-      position: 'relative',
-      border: '2px solid #f9c74f',
-      borderRadius: '12px',
-      padding: '16px',
-      margin: '8px 0',
-      background: 'linear-gradient(45deg, #fff9f0, #fff4e6)',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      {/* Cog icon for edit, positioned at top right */}
-      <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', gap: '4px', zIndex: 1 }}>
+    <div className="brutalist-card brutalist-card--themed" style={cardStyle}>
+      {/* Settings icon for editing, positioned at top right */}
+      <div className="absolute top-2 right-2 z-10">
         <button
           onClick={handleOpenEditModal}
-          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          className="bg-none border-none cursor-pointer p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
           title="Edit Award"
         >
-          <Settings className="w-4 h-4" color="#4CAF50" />
+          <Settings className="w-4 h-4" color={iconColor} />
         </button>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-        <div style={{ marginRight: '12px' }}>
-          <IconComponent size={28} color={iconColor} />
+      {/* Apply background color with gradient fade */}
+      <div 
+        className="brutalist-card__header-wrapper" 
+        style={{
+          background: `linear-gradient(180deg, ${customColors.backgroundColor} 0%, ${customColors.backgroundColor} 30%, ${cardBgColor} 100%)`,
+          height: '160px',
+          marginBottom: '-40px'
+        }}
+      >
+        <div className="brutalist-card__header">
+          <div 
+            className="brutalist-card__icon" 
+            style={{ 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              top: '-10px',
+              width: '60px',
+              height: '60px'
+            }}
+          >
+            <IconComponent color={iconColor} />
+          </div>
+          <h3 
+            className="" 
+            style={{ 
+              marginLeft: '0', 
+              marginTop: '60px', 
+              textAlign: 'center',
+              width: '100%',
+              padding: '0 1.5rem',
+              fontWeight: 500,
+              color: isDarkMode ? '#f9fafb' : '#1f2937', 
+              fontSize: '1.5rem',
+              position: 'relative',
+              zIndex: 1
+            }}
+          >
+            {bonusAward.title || 'Untitled Bonus'}
+          </h3>
         </div>
-        <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>
-          {bonusAward.title || 'Untitled Bonus'}
-        </h3>
-      </div>
-      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>
-        {bonusAward.points || 0} pts
       </div>
 
-      {/* Add star display */}
-      <div className="mb-4">
-        <div className="star-display-large">
-          <StarDisplay 
-            points={bonusAward.points} 
-            size="lg"
-          />
-        </div>
+      <div className="brutalist-card__stars">
+        <StarDisplay 
+          points={bonusAward.points} 
+          size="lg"
+        />
+        <div className="brutalist-card__points">{bonusAward.points || 0} pts</div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+      <div className="brutalist-card__actions">
         <button 
           onClick={onAward} 
-          style={{ flex: 1, padding: '8px', backgroundColor: '#f9c74f', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          className="brutalist-card__button brutalist-card__button--primary"
+          style={{ backgroundColor: iconColor }}
         >
-          Award
+          AWARD
         </button>
       </div>
 
-      {isEditModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor:'rgba(0, 0, 0, 0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 50 }}>
-          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '90%', maxWidth: '500px' }}>
-            <h2>Edit Bonus Award</h2>
-            {editError && <p style={{ color: 'red' }}>{editError}</p>}
-            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {isEditModalOpen && typeof window === 'object' && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="brutalist-modal max-w-md w-[95%] max-h-[90vh] overflow-y-auto m-2 p-4 relative">
+            <h2 className="brutalist-modal__title">Edit Bonus Award</h2>
+            {editError && <p className="text-red-500 mb-4">{editError}</p>}
+            <form onSubmit={handleEditSubmit} className="space-y-4 pb-4">
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Title</label>
+                <label className="brutalist-modal__label">Title</label>
                 <input
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   required
-                  style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }}
+                  className="brutalist-modal__input"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Points</label>
+                <label className="brutalist-modal__label">Points</label>
                 <input
                   type="number"
                   value={editPoints}
                   onChange={(e) => setEditPoints(e.target.value)}
                   required
-                  style={{ width:'100%', padding:'8px', border: '1px solid #ccc', borderRadius:'4px' }}
+                  className="brutalist-modal__input"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Select Icon</label>
+                <label className="brutalist-modal__label">Select Icon</label>
                 <IconPickerGrid />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Select Color</label>
+                <label className="brutalist-modal__label">Select Color</label>
                 <ColorPickerGrid />
                 {editIcon && editColor && (
                   <div className="mt-2 p-2 bg-gray-50 rounded flex items-center gap-2">
@@ -305,20 +347,33 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap:'10px' }}>
-                <button type="button" onClick={() => setIsEditModalOpen(false)} style={{ padding:'8px 12px', backgroundColor:'#ccc', border:'none', borderRadius:'4px', cursor:'pointer' }}>
-                  Cancel
+              <div className="flex justify-end space-x-2 sticky bottom-0 pt-4 bg-inherit">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="brutalist-card__button"
+                >
+                  CANCEL
                 </button>
-                <button type="submit" disabled={editLoading} style={{ padding:'8px 12px', backgroundColor:'#4CAF50', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer' }}>
-                  {editLoading ? 'Saving...' : 'Save'}
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="brutalist-card__button brutalist-card__button--primary"
+                >
+                  {editLoading ? 'SAVING...' : 'SAVE'}
                 </button>
-                <button type="button" onClick={handleDelete} style={{ padding:'8px 12px', backgroundColor:'#f44336', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer' }}>
-                  Delete Award
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="brutalist-card__button brutalist-card__button--reject"
+                >
+                  DELETE
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
