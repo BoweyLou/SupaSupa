@@ -107,6 +107,11 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({ familyId, onClose }) 
             onChange={(value) => handleColorChange('borderColor', value)}
           />
           <ColorPicker
+            label="Lower Gradient Color"
+            value={localTheme.lowerGradientColor}
+            onChange={(value) => handleColorChange('lowerGradientColor', value)}
+          />
+          <ColorPicker
             label="Background Color"
             value={localTheme.backgroundColor}
             onChange={(value) => handleColorChange('backgroundColor', value)}

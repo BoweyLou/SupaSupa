@@ -133,6 +133,8 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
     '--brutalist-card-border-color': customColors.borderColor,
     '--brutalist-card-bg-color': customColors.backgroundColor,
     '--brutalist-card-shadow-color': customColors.shadowColor,
+    position: 'relative',
+    overflow: 'hidden'
   } as React.CSSProperties;
 
   const handleOpenEditModal = () => {
@@ -244,60 +246,73 @@ const BonusAwardCard: React.FC<BonusAwardCardProps> = ({ bonusAward, onAward, on
       <div 
         className="brutalist-card__header-wrapper" 
         style={{
-          background: `linear-gradient(180deg, ${customColors.backgroundColor} 0%, ${customColors.backgroundColor} 30%, ${cardBgColor} 100%)`,
-          height: '160px',
-          marginBottom: '-40px'
+          background: `linear-gradient(to top, ${customColors.backgroundColor} 0%, ${customColors.backgroundColor} 40%, ${cardBgColor} 100%)`,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0
         }}
-      >
-        <div className="brutalist-card__header">
-          <div 
-            className="brutalist-card__icon" 
-            style={{ 
-              left: '50%', 
-              transform: 'translateX(-50%)', 
-              top: '-10px',
-              width: '60px',
-              height: '60px'
-            }}
-          >
-            <IconComponent color={iconColor} />
-          </div>
-          <h3 
-            className="" 
-            style={{ 
-              marginLeft: '0', 
-              marginTop: '60px', 
-              textAlign: 'center',
-              width: '100%',
-              padding: '0 1.5rem',
-              fontWeight: 500,
-              color: isDarkMode ? '#f9fafb' : '#1f2937', 
-              fontSize: '1.5rem',
-              position: 'relative',
-              zIndex: 1
-            }}
-          >
-            {bonusAward.title || 'Untitled Bonus'}
-          </h3>
-        </div>
-      </div>
+      />
 
-      <div className="brutalist-card__stars">
-        <StarDisplay 
-          points={bonusAward.points} 
-          size="lg"
-        />
-        <div className="brutalist-card__points">{bonusAward.points || 0} pts</div>
-      </div>
-
-      <div className="brutalist-card__actions">
-        <button 
-          onClick={onAward} 
-          className="brutalist-card__button brutalist-card__button--primary"
-          style={{ backgroundColor: iconColor }}
+      <div className="brutalist-card__content flex flex-col items-center" style={{ position: 'relative', zIndex: 1, padding: '1rem' }}>
+        {/* Icon Container */}
+        <div 
+          className="brutalist-card__icon-container" 
+          style={{ 
+            width: '60px',
+            height: '60px',
+            backgroundColor: isDarkMode ? '#374151' : 'white',
+            borderRadius: '50%',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem'
+          }}
         >
-          AWARD
-        </button>
+          <IconComponent color={iconColor} size={30} />
+        </div>
+
+        {/* Award Title */}
+        <h3 
+          className="brutalist-card__title"
+          style={{ 
+            textAlign: 'center',
+            width: '100%',
+            fontWeight: 500,
+            color: isDarkMode ? '#f9fafb' : '#1f2937', 
+            fontSize: '1.25rem',
+            lineHeight: '1.2',
+            marginBottom: '1rem',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            padding: '0 0.5rem'
+          }}
+        >
+          {bonusAward.title || 'Untitled Bonus'}
+        </h3>
+
+        {/* Points Display */}
+        <div className="brutalist-card__stars mb-4">
+          <StarDisplay 
+            points={bonusAward.points} 
+            size="lg"
+          />
+          <div className="brutalist-card__points mt-1">{bonusAward.points || 0} pts</div>
+        </div>
+
+        {/* Award Button */}
+        <div className="brutalist-card__actions w-full">
+          <button 
+            onClick={onAward} 
+            className="brutalist-card__button brutalist-card__button--primary w-full"
+            style={{ backgroundColor: iconColor }}
+          >
+            AWARD
+          </button>
+        </div>
       </div>
 
       {isEditModalOpen && typeof window === 'object' && createPortal(

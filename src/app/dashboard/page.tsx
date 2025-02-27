@@ -83,7 +83,7 @@ interface TaskResponse {
   next_occurrence?: string;
   icon?: string;
   custom_colors?: {
-    borderColor?: string;
+    lowerGradientColor?: string;
     backgroundColor?: string;
     shadowColor?: string;
   };
@@ -1113,7 +1113,7 @@ export default function DashboardPage() {
       lockoutUnit?: 'days' | 'weeks',
       icon?: string,
       customColors?: {
-        borderColor?: string;
+        lowerGradientColor?: string;
         backgroundColor?: string;
         shadowColor?: string;
       }

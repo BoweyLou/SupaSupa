@@ -28,7 +28,7 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
   const [lockoutUnit, setLockoutUnit] = useState<'days' | 'weeks'>('days');
   // New state variables for brutalist design
   const [selectedIcon, setSelectedIcon] = useState<string>('Award');
-  const [customBorderColor, setCustomBorderColor] = useState('');
+  const [customLowerGradientColor, setCustomLowerGradientColor] = useState('');
   const [customBgColor, setCustomBgColor] = useState('');
   const [customShadowColor, setCustomShadowColor] = useState('');
 
@@ -76,7 +76,7 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
     try {
       // Prepare custom colors object
       const customColors = {
-        borderColor: customBorderColor || undefined,
+        lowerGradientColor: customLowerGradientColor || undefined,
         backgroundColor: customBgColor || undefined,
         shadowColor: customShadowColor || undefined
       };
@@ -110,7 +110,7 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
         setLockoutPeriod('');
         setLockoutUnit('days');
         setSelectedIcon('Award');
-        setCustomBorderColor('');
+        setCustomLowerGradientColor('');
         setCustomBgColor('');
         setCustomShadowColor('');
         setIsModalOpen(false);
@@ -317,16 +317,16 @@ const AddAward: React.FC<AddAwardProps> = ({ onAwardAdded, familyId, childAccoun
                 </label>
                 <div className="space-y-2">
                   <div className="flex items-center">
-                    <label className="inline-block w-24 text-sm">Border:</label>
+                    <label className="inline-block w-24 text-sm">Lower Gradient:</label>
                     <input
                       type="color"
-                      value={customBorderColor || "#000000"}
-                      onChange={(e) => setCustomBorderColor(e.target.value)}
+                      value={customLowerGradientColor || "#000000"}
+                      onChange={(e) => setCustomLowerGradientColor(e.target.value)}
                       className="p-1 w-16 h-8 border border-gray-200 rounded"
                     />
                     <button 
                       type="button" 
-                      onClick={() => setCustomBorderColor('')}
+                      onClick={() => setCustomLowerGradientColor('')}
                       className="ml-2 text-xs text-gray-500 hover:text-gray-700"
                     >
                       Clear

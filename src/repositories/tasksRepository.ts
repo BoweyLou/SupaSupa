@@ -22,7 +22,7 @@ export interface TaskResponse {
   next_occurrence?: string;
   icon?: string;
   custom_colors?: {
-    borderColor?: string;
+    lowerGradientColor?: string;
     backgroundColor?: string;
     shadowColor?: string;
   };
@@ -39,7 +39,7 @@ export interface TaskData {
   created_by: string;
   icon?: string;
   custom_colors?: {
-    borderColor?: string;
+    lowerGradientColor?: string;
     backgroundColor?: string;
     shadowColor?: string;
   };
@@ -55,7 +55,7 @@ export interface TaskUpdateData {
   assigned_child_id?: string;
   icon?: string;
   custom_colors?: {
-    borderColor?: string;
+    lowerGradientColor?: string;
     backgroundColor?: string;
     shadowColor?: string;
   };

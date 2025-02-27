@@ -11,7 +11,7 @@
   margin-right: 1rem;
   transition: all 0.3s ease;
   min-height: 280px;
-  position: relative;
+  position: relative; /* Essential for absolute positioning of children */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
   overflow: hidden; /* Ensure gradient stays within card boundaries */
 }
@@ -24,14 +24,14 @@
   margin-right: 0.5rem;
 }
 
-.brutalist-card--simple .brutalist-card__header-wrapper {
-  height: 100px;
-  margin-bottom: -30px;
+.brutalist-card--simple .brutalist-card__header {
+  padding-top: 0.75rem;
 }
 
 .brutalist-card--simple .brutalist-card__icon {
   width: 40px;
   height: 40px;
+  top: 12px;
 }
 
 .brutalist-card--simple .brutalist-card__icon svg {
@@ -40,7 +40,15 @@
 
 .brutalist-card--simple h3 {
   font-size: 1rem !important;
-  margin-top: 35px !important;
+  margin-top: 60px !important;
+}
+
+.brutalist-card--simple .brutalist-card__message {
+  margin-top: 5px;
+}
+
+.brutalist-card--simple .brutalist-card__stars {
+  margin-top: 10px;
 }
 
 .brutalist-card--simple .brutalist-card__points {
@@ -60,29 +68,35 @@
 /* New header wrapper for gradient background */
 .brutalist-card__header-wrapper {
   padding: 1.5rem 2.5rem 0; /* Increase left padding to account for icon position */
-  border-radius: 30px 30px 0 0;
-  position: relative;
-  /* Extend the wrapper to cover more of the card */
-  height: 160px; /* Reduced height for better gradient transition */
-  margin-bottom: -60px; /* Adjusted negative margin */
+  border-radius: 30px; /* Apply to entire card */
+  position: absolute; /* Position absolute to fill the entire card */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Fill the entire card */
+  height: 100%;
+  width: 100%;
   z-index: 0; /* Ensure the gradient stays behind the content */
   overflow: hidden; /* Ensure the gradient doesn't spill outside the card */
   border-bottom: none; /* Remove the border to eliminate the hard line */
+  /* Default gradient - updated to flow from bottom to top */
+  background: linear-gradient(to top, rgba(0,0,0,0.05) 0%, transparent 60%, transparent 100%);
 }
 
 .brutalist-card__header {
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* Align items to the left */
-  text-align: left; /* Left align text */
+  align-items: center; /* Center align items */
+  text-align: center; /* Center align text */
   gap: 0.25rem; /* Reduced gap for better spacing */
   margin-bottom: 0.5rem; /* Reduced margin */
   padding-bottom: 0; /* Remove padding */
   border-bottom: none; /* Remove the border completely */
   position: relative;
-  z-index: 1; /* Ensure header content stays above the gradient */
-  padding-top: 1rem; /* Reduced padding */
-  padding-left: 0; /* Align with description text */
+  z-index: 2; /* Increase z-index to ensure header content stays above the gradient */
+  padding-top: 1.5rem; /* Increased padding for the icon */
+  width: 100%;
 }
 
 .brutalist-card__icon {
@@ -93,9 +107,10 @@
   width: 60px;
   height: 60px;
   position: absolute;
-  top: 1rem; /* Move up */
-  left: 0.25rem; /* Adjust position to ensure icon is visible */
-  z-index: 2; /* Ensure icon stays above everything */
+  top: 20px; /* Position from top */
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Center horizontally */
+  z-index: 3; /* Ensure icon stays above everything */
   background-color: white;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -143,17 +158,17 @@
   line-height: 1.4;
   padding: 0 1.5rem; /* Keep consistent padding with title */
   position: relative;
-  z-index: 1; /* Ensure content stays above the gradient */
-  margin-top: 40px; /* Reduced margin to position closer to the header */
-  text-align: left; /* Ensure text is left-aligned */
+  z-index: 3; /* Increase z-index to ensure content stays above the gradient */
+  margin-top: 10px; /* Reduced margin to position closer to the header */
+  text-align: center; /* Center align text to match the design */
 }
 
 .brutalist-card__stars {
   margin: 0;
   padding: 0 1.5rem;
   position: relative;
-  z-index: 1; /* Ensure content stays above the gradient */
-  margin-top: 0.75rem; /* Add space after the description */
+  z-index: 3; /* Increase z-index to ensure content stays above the gradient */
+  margin-top: 15px; /* Add space after the description */
   display: flex;
   flex-direction: column;
   align-items: center; /* Center the stars and points */
@@ -166,7 +181,7 @@
   padding: 0 1.5rem 1rem;
   color: #6b7280;
   position: relative;
-  z-index: 1; /* Ensure content stays above the gradient */
+  z-index: 3; /* Increase z-index to ensure content stays above the gradient */
   text-align: left; /* Ensure text is left-aligned */
 }
 
@@ -182,7 +197,7 @@
   margin-top: 1rem;
   padding: 0 1.5rem 1.5rem;
   position: relative;
-  z-index: 1; /* Ensure actions stay above the gradient */
+  z-index: 3; /* Increase z-index to ensure actions stay above the stronger bottom gradient */
 }
 
 .brutalist-card__button {
@@ -202,6 +217,8 @@
   margin-bottom: 1rem;
   cursor: pointer;
   border: none;
+  z-index: 3; /* Ensure buttons appear above the gradient */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Add subtle shadow for better contrast */
 }
 
 .brutalist-card__button--primary {

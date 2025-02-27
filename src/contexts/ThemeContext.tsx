@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 // Define the theme settings interface
 export interface ThemeSettings {
   borderColor: string;
+  lowerGradientColor: string;
   backgroundColor: string;
   shadowColor: string;
   textColor: string;
@@ -23,6 +24,7 @@ export interface ThemeSettings {
 // Default theme settings
 export const defaultTheme: ThemeSettings = {
   borderColor: '#000000',
+  lowerGradientColor: '#DDDDDD',
   backgroundColor: '#FFFFFF',
   shadowColor: '#000000',
   textColor: '#000000',
@@ -82,6 +84,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Apply theme to CSS variables
   const applyThemeToRoot = useCallback(() => {
     document.documentElement.style.setProperty('--brutalist-card-border-color', theme.borderColor);
+    document.documentElement.style.setProperty('--brutalist-card-lower-gradient-color', theme.lowerGradientColor);
     document.documentElement.style.setProperty('--brutalist-card-bg-color', theme.backgroundColor);
     document.documentElement.style.setProperty('--brutalist-card-shadow-color', theme.shadowColor);
     document.documentElement.style.setProperty('--brutalist-card-text-color', theme.textColor);
