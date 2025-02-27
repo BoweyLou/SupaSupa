@@ -297,7 +297,9 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
             zIndex: 3
           }}
         >
-          <IconComponent />
+          <div style={{ transform: 'scale(0.95)' }}>
+            <IconComponent />
+          </div>
         </div>
         <h3 
           ref={titleRef}
@@ -312,14 +314,25 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
             color: isDarkMode ? '#f9fafb' : '#1f2937', 
             fontSize: '1.5rem',
             position: 'relative',
-            zIndex: 2
+            zIndex: 2,
+            textShadow: '0 0 1px white, 0 0 2px white'
           }}
         >
           {updatedQuest.title}
         </h3>
       </div>
       
-      <div className="brutalist-card__message" style={{ marginTop: '10px', position: 'relative', zIndex: 2 }}>{updatedQuest.description}</div>
+      <div 
+        className="brutalist-card__message" 
+        style={{ 
+          marginTop: '10px', 
+          position: 'relative', 
+          zIndex: 2,
+          textShadow: '0 0 1px white, 0 0 2px white'
+        }}
+      >
+        {updatedQuest.description}
+      </div>
       
       <div className="brutalist-card__stars" style={{ marginTop: '15px', position: 'relative', zIndex: 2 }}>
         <StarDisplay 

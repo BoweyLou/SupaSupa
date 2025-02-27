@@ -386,9 +386,9 @@ const AwardCard: React.FC<AwardCardProps> = ({
           left: 0,
           right: 0,
           bottom: 0,
-          height: '100%', 
-          marginBottom: 0,
-          zIndex: 0
+          zIndex: 0,
+          // Remove fixed height to allow proper scaling with content
+          pointerEvents: 'none' // Ensure clicks pass through to elements below
         }}
       >
       </div>
@@ -412,7 +412,9 @@ const AwardCard: React.FC<AwardCardProps> = ({
             zIndex: 3
           }}
         >
-          <IconComponent />
+          <div style={{ transform: 'scale(0.95)' }}>
+            <IconComponent />
+          </div>
         </div>
         <h3 
           ref={titleRef}
@@ -427,7 +429,8 @@ const AwardCard: React.FC<AwardCardProps> = ({
             color: isDarkMode ? '#f9fafb' : '#1f2937', 
             fontSize: '1.5rem',
             position: 'relative',
-            zIndex: 2
+            zIndex: 2,
+            textShadow: '0 0 1px white, 0 0 2px white'
           }}
         >
           {updatedAward.title}
@@ -435,7 +438,17 @@ const AwardCard: React.FC<AwardCardProps> = ({
       </div>
       
       {updatedAward.description && (
-        <div className="brutalist-card__message" style={{ marginTop: '10px', position: 'relative', zIndex: 2 }}>{updatedAward.description}</div>
+        <div 
+          className="brutalist-card__message" 
+          style={{ 
+            marginTop: '10px', 
+            position: 'relative', 
+            zIndex: 2,
+            textShadow: '0 0 1px white, 0 0 2px white'
+          }}
+        >
+          {updatedAward.description}
+        </div>
       )}
       
       <div className="brutalist-card__stars" style={{ marginTop: updatedAward.description ? '15px' : '30px', position: 'relative', zIndex: 2 }}>
@@ -536,7 +549,7 @@ const AwardCard: React.FC<AwardCardProps> = ({
             {/* Add REVIVE button for awarded awards in parent view */}
             {isParentView && onRevive && (
               <button
-                className="brutalist-card__button brutalist-card__button--claim mt-2"
+                className="brutalist-card__button brutalist-card__button--claim mt-2 relative z-[3]"
                 onClick={() => onRevive(updatedAward.id)}
               >
                 REVIVE AWARD

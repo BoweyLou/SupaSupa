@@ -26,7 +26,43 @@ import {
   Smartphone,
   Laptop,
   Camera,
-  Headphones
+  Headphones,
+  // Additional icons for kids activities and chores
+  Home,
+  Bath,
+  Baby,
+  Bed,
+  Bike,
+  BookOpen,
+  BrainCircuit,
+  Brush,
+  Cat,
+  Dog,
+  Car,
+  Clapperboard,
+  Drumstick,
+  Footprints,
+  Glasses,
+  GraduationCap,
+  Droplets,
+  Shirt,
+  Flower,
+  Utensils,
+  Trash2,
+  School,
+  Puzzle,
+  Pencil,
+  Paintbrush,
+  Leaf,
+  Recycle,
+  Smile,
+  Sun,
+  Scissors,
+  Wind,
+  VolumeX,
+  Timer,
+  Ruler,
+  X
 } from 'lucide-react';
 
 // Define icon sets
@@ -43,14 +79,16 @@ const iconSets = {
     { name: 'Heart', component: Heart },
     { name: 'ThumbsUp', component: ThumbsUp },
     { name: 'Sparkles', component: Sparkles },
-    { name: 'Zap', component: Zap }
+    { name: 'Zap', component: Zap },
+    { name: 'Smile', component: Smile }
   ],
   productivity: [
     { name: 'CheckCircle', component: CheckCircle },
     { name: 'Target', component: Target },
     { name: 'Rocket', component: Rocket },
     { name: 'Clock', component: Clock },
-    { name: 'Calendar', component: Calendar }
+    { name: 'Calendar', component: Calendar },
+    { name: 'Timer', component: Timer }
   ],
   lifestyle: [
     { name: 'Book', component: Book },
@@ -65,6 +103,45 @@ const iconSets = {
     { name: 'Laptop', component: Laptop },
     { name: 'Camera', component: Camera },
     { name: 'Headphones', component: Headphones }
+  ],
+  // New categories for kids
+  chores: [
+    { name: 'Home', component: Home },
+    { name: 'Bed', component: Bed },
+    { name: 'Brush', component: Brush },
+    { name: 'Handwashing', component: Droplets },
+    { name: 'Laundry', component: Shirt },
+    { name: 'Trash', component: Trash2 },
+    { name: 'Cleaning', component: Wind },
+    { name: 'Recycle', component: Recycle },
+    { name: 'Bath', component: Bath },
+    { name: 'Hygiene', component: Scissors },
+    { name: 'Dishes', component: Utensils },
+    { name: 'Plants', component: Leaf }
+  ],
+  school: [
+    { name: 'School', component: School },
+    { name: 'Homework', component: BookOpen },
+    { name: 'Learning', component: BrainCircuit },
+    { name: 'Graduate', component: GraduationCap },
+    { name: 'Reading', component: Book },
+    { name: 'Writing', component: Pencil },
+    { name: 'Art', component: Paintbrush },
+    { name: 'Ruler', component: Ruler },
+    { name: 'Puzzle', component: Puzzle },
+    { name: 'Quiet', component: VolumeX }
+  ],
+  activities: [
+    { name: 'Bike', component: Bike },
+    { name: 'Walking', component: Footprints },
+    { name: 'Outdoors', component: Sun },
+    { name: 'Pets', component: Dog },
+    { name: 'Cat', component: Cat },
+    { name: 'Cooking', component: Drumstick },
+    { name: 'Movies', component: Clapperboard },
+    { name: 'Sports', component: Footprints },
+    { name: 'Garden', component: Flower },
+    { name: 'Car', component: Car }
   ]
 };
 

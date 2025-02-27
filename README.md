@@ -13,6 +13,7 @@ A modern web application built with Next.js and Supabase, featuring authenticati
 - Enhanced award system with child-specific visibility, redemption limits, and lockout periods
 - Customizable bonus awards with icon and color selection
 - Brutalist design system with customizable cards, colors, and icons
+- Expanded icon categories for kids' activities, chores, and school tasks
 
 ## Getting Started
 
@@ -79,6 +80,8 @@ Comprehensive documentation about the SupaSupa application is available in the `
 - [Database Schema](docs/database_schema.md) - Detailed information about all tables in the database
 - [Database Functions](docs/database_functions.md) - Documentation of all database functions
 - [Database Relationships](docs/database_relationships.md) - Overview of the relationships between tables
+- [Brutalist Design System](docs/BrutalistDesignSystem.md) - Information about the design system
+- [Icon Selector](docs/IconSelector.md) - Guide to using icons for quests and awards
 
 See the [Documentation README](docs/README.md) for more information.
 
@@ -131,9 +134,13 @@ The application now features a brutalist design system that provides a bold, geo
 - Brutalist buttons with hover and active states
 - Styled form elements and modals
 - Color pickers for customizing card appearances
-- Icon selectors for choosing from a library of icons
+- Icon selectors for choosing from a library of icons, including kid-friendly categories:
+  - Chores (cleaning, bed making, dishes, etc.)
+  - School activities (homework, reading, writing, etc.)
+  - General activities (biking, cooking, movies, etc.)
 
 For detailed information about the brutalist design system, see [docs/BrutalistDesignSystem.md](docs/BrutalistDesignSystem.md).
+For a complete guide to available icons, see [docs/IconSelector.md](docs/IconSelector.md).
 
 For detailed schema information, see [docs/database_schema.md](docs/database_schema.md).
 For information about the enhanced award system, see [docs/Features/EnhancedAwardSystem.md](docs/Features/EnhancedAwardSystem.md).
