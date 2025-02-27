@@ -35,6 +35,7 @@
   align-items: center;
   gap: 0.5rem;
   color: #1f2937;
+  margin-left: 3.5rem;
 }
 
 .brutalist-card__icon {
@@ -46,8 +47,8 @@
   height: 48px;
   position: absolute;
   top: 0;
-  left: 0;
-  margin: 1.5rem;
+  left: 0.25rem;
+  margin: 1.5rem 0;
 }
 
 .brutalist-card__icon svg {

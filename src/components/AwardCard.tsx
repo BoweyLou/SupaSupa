@@ -2,7 +2,7 @@
 // Award Card component: Displays an award with title, description, points, and allows for claiming if not awarded.
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Clock, RefreshCw, Users } from 'lucide-react';
 import StarDisplay from './StarDisplay';
 import { getIconByName } from './IconSelector';
@@ -274,26 +274,97 @@ const AwardCard: React.FC<AwardCardProps> = ({
   
   // Get the card background color based on theme
   const cardBgColor = document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff';
+  
+  // Check if dark mode is enabled
+  const isDarkMode = document.documentElement.classList.contains('dark');
+
+  // Add ref for the title element
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Add effect to log computed styles after render
+  useEffect(() => {
+    if (titleRef.current) {
+      const styles = window.getComputedStyle(titleRef.current);
+      console.log('AwardCard - Title computed styles:', {
+        marginLeft: styles.marginLeft,
+        marginTop: styles.marginTop,
+        width: styles.width,
+        padding: styles.padding,
+        paddingLeft: styles.paddingLeft,
+        paddingRight: styles.paddingRight,
+        textAlign: styles.textAlign,
+        display: styles.display,
+        position: styles.position
+      });
+    }
+    
+    if (cardRef.current) {
+      const brutalistCardTitle = cardRef.current.querySelector('.brutalist-card__title');
+      if (brutalistCardTitle) {
+        console.log('AwardCard - brutalist-card__title class element found:', brutalistCardTitle);
+        const styles = window.getComputedStyle(brutalistCardTitle as Element);
+        console.log('AwardCard - .brutalist-card__title class computed styles:', {
+          marginLeft: styles.marginLeft,
+          marginTop: styles.marginTop,
+          width: styles.width,
+          padding: styles.padding,
+          paddingLeft: styles.paddingLeft,
+          paddingRight: styles.paddingRight
+        });
+      } else {
+        console.log('AwardCard - No .brutalist-card__title class element found');
+      }
+    }
+  }, []);
 
   return (
-    <div className="brutalist-card brutalist-card--themed" style={cardStyle}>
+    <div className="brutalist-card brutalist-card--themed" style={cardStyle} ref={cardRef}>
       {/* Apply background color only to the header section with a gradient fade */}
       <div 
         className="brutalist-card__header-wrapper" 
         style={{
-          background: `linear-gradient(180deg, ${bgColor} 0%, ${bgColor} 30%, ${cardBgColor} 100%)`
+          background: `linear-gradient(180deg, ${bgColor} 0%, ${bgColor} 30%, ${cardBgColor} 100%)`,
+          height: '180px',
+          marginBottom: '-40px'
         }}
       >
         <div className="brutalist-card__header">
-          <div className="brutalist-card__icon">
+          <div 
+            className="brutalist-card__icon" 
+            style={{ 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              top: '-10px',
+              width: '72px',
+              height: '72px'
+            }}
+          >
             <IconComponent />
           </div>
-          <h3 className="brutalist-card__title">{award.title}</h3>
+          <h3 
+            ref={titleRef}
+            className="" 
+            style={{ 
+              marginLeft: '0', 
+              marginTop: '70px', 
+              textAlign: 'center',
+              width: '100%',
+              padding: '0 1.5rem',
+              fontWeight: 500,
+              color: isDarkMode ? '#f9fafb' : '#1f2937', 
+              fontSize: '1.5rem',
+              position: 'relative',
+              zIndex: 1
+            }}
+          >
+            {award.title}
+          </h3>
         </div>
       </div>
       
       {award.description && (
-        <div className="brutalist-card__message">{award.description}</div>
+        <div className="brutalist-card__message" style={{ marginTop: '50px' }}>{award.description}</div>
       )}
       
       <div className="brutalist-card__stars">
