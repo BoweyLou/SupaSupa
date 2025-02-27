@@ -104,10 +104,12 @@ const AwardCard: React.FC<AwardCardProps> = ({
   const [customBgColor, setCustomBgColor] = useState(award.customColors?.backgroundColor || '');
   const [customShadowColor, setCustomShadowColor] = useState(award.customColors?.shadowColor || '');
 
-  // Remove the early return after hooks
-  const shouldRenderAward = currentFamilyId ? award.familyId === currentFamilyId : true;
+  // Add refs - MOVED UP BEFORE ANY CONDITIONAL RETURNS
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   
   // Check if award is visible to current child
+  const shouldRenderAward = currentFamilyId ? award.familyId === currentFamilyId : true;
   const isVisibleToChild = !currentChildId || 
     !award.allowedChildrenIds || 
     award.allowedChildrenIds.length === 0 || 
@@ -247,42 +249,7 @@ const AwardCard: React.FC<AwardCardProps> = ({
     return getIconByName(award.icon || 'Award');
   }, [award.icon]);
 
-  // Only render if the award should be visible
-  if (!shouldRenderAward || (currentChildId && !isVisibleToChild)) {
-    return null;
-  }
-
-  // Apply custom colors or use theme defaults
-  const cardStyle = {
-    '--brutalist-card-border-color': award.customColors?.borderColor || theme.borderColor,
-    '--brutalist-card-bg-color': award.customColors?.backgroundColor || theme.backgroundColor,
-    '--brutalist-card-shadow-color': award.customColors?.shadowColor || theme.shadowColor,
-  } as React.CSSProperties;
-
-  // Get the background color for gradient
-  const bgColor = award.customColors?.backgroundColor || theme.backgroundColor;
-  
-  // Function to create a transparent version of a color (currently unused)
-  // const getTransparentColor = (color: string) => {
-  //   if (color.startsWith('rgb')) {
-  //     return color.replace(/rgba?\(([^)]+)\)/, 'rgba($1, 0)');
-  //   }
-  //   return color;
-  // };
-  
-  // const transparentBgColor = getTransparentColor(bgColor);
-  
-  // Get the card background color based on theme
-  const cardBgColor = document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff';
-  
-  // Check if dark mode is enabled
-  const isDarkMode = document.documentElement.classList.contains('dark');
-
-  // Add ref for the title element
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  
-  // Add effect to log computed styles after render
+  // Add effect to log computed styles after render - MOVED UP BEFORE ANY CONDITIONAL RETURNS
   useEffect(() => {
     if (titleRef.current) {
       const styles = window.getComputedStyle(titleRef.current);
@@ -317,6 +284,27 @@ const AwardCard: React.FC<AwardCardProps> = ({
       }
     }
   }, []);
+
+  // Only render if the award should be visible - MOVED AFTER ALL HOOKS
+  if (!shouldRenderAward || (currentChildId && !isVisibleToChild)) {
+    return null;
+  }
+
+  // Apply custom colors or use theme defaults
+  const cardStyle = {
+    '--brutalist-card-border-color': award.customColors?.borderColor || theme.borderColor,
+    '--brutalist-card-bg-color': award.customColors?.backgroundColor || theme.backgroundColor,
+    '--brutalist-card-shadow-color': award.customColors?.shadowColor || theme.shadowColor,
+  } as React.CSSProperties;
+
+  // Get the background color for gradient
+  const bgColor = award.customColors?.backgroundColor || theme.backgroundColor;
+  
+  // Get the card background color based on theme
+  const cardBgColor = document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff';
+  
+  // Check if dark mode is enabled
+  const isDarkMode = document.documentElement.classList.contains('dark');
 
   return (
     <div className="brutalist-card brutalist-card--themed" style={cardStyle} ref={cardRef}>
