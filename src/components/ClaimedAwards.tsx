@@ -71,7 +71,7 @@ const ClaimedAwards: React.FC<ClaimedAwardsProps> = ({ activeChildId }) => {
       {claimedAwards.length === 0 ? (
         <p className="text-center text-gray-500 p-4">No claimed awards yet.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
           {claimedAwards.map((claim) => {
             if (!claim.awards) {
               console.warn('Missing award data for claimed award:', claim.id);

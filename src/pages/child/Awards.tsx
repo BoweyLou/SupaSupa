@@ -275,7 +275,7 @@ const Awards: React.FC<AwardsProps> = ({ activeChildId }) => {
           <h2 style={{ fontFamily: 'Poppins, sans-serif' }}>Available Awards</h2>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))',
             gap: '16px'
           }}>
             {awards.filter(award => !award.awarded).map(award => (

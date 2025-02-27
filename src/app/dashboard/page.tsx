@@ -806,9 +806,6 @@ export default function DashboardPage() {
       }
     }
 
-    // Compute the child's completed tasks for today
-    const completedTasksForChild = selectedChild ? (childTasks[selectedChild.id] || []).filter((task: Quest) => task.status === 'completed' && isToday(task.completedAt)) : [];
-
     // Compute active and completed tasks for parent's task view
     const activeTasks = tasks.filter((task: Quest) => task.status !== 'completed');
     const completedTasks = tasks.filter((task: Quest) => task.status === 'completed');
@@ -1201,7 +1198,7 @@ export default function DashboardPage() {
 
           {completedTasksForThisChild.length > 0 && (
             <DashboardSection title="Today's Completed Tasks">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
                 {completedTasksForThisChild.map((task: Quest) => (
                   <CompletedTaskCard key={task.id} task={task} />
                 ))}
@@ -1210,7 +1207,7 @@ export default function DashboardPage() {
           )}
 
           <DashboardSection title="Bonus Awards">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
               {bonusAwards && bonusAwards.map((b: BonusAward) => {
                 const isAwarded = (b.instances || []).some((instance: BonusAwardInstance) => instance.assigned_child_id === child.id);
                 const awardedAt = (b.instances || []).find((instance: BonusAwardInstance) => instance.assigned_child_id === child.id)?.awarded_at;
@@ -1345,7 +1342,7 @@ export default function DashboardPage() {
                 <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
             </div>
             { bonusAwards.filter((b: BonusAward) => b.status === 'available').length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
                 { bonusAwards.filter((b: BonusAward) => b.status === 'available').map((bonus: BonusAward) => (
                   <BonusAwardCard 
                     key={bonus.id} 
@@ -1365,7 +1362,7 @@ export default function DashboardPage() {
           {dbUser && dbUser.role === 'parent' && (
             <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
               { awards && awards.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: '16px' }}>
                   { awards.map((award: Award) => (
                     <AwardCard 
                       key={award.id} 

@@ -11,11 +11,11 @@ const StarDisplay = ({ points, size = 'md', className = '' }: StarDisplayProps) 
   const hasHalfStar = points % 10 >= 5;
   const stars = [];
 
-  // Determine star size
+  // Determine star size - increase all sizes
   const starSize = {
-    sm: 14,
-    md: 16,
-    lg: 20
+    sm: 18,
+    md: 22,
+    lg: 28
   }[size];
 
   // Create full stars
@@ -24,7 +24,9 @@ const StarDisplay = ({ points, size = 'md', className = '' }: StarDisplayProps) 
       <Star 
         key={`full-${i}`} 
         size={starSize}
-        className="inline-block text-yellow-400 mr-1 drop-shadow-lg" 
+        className="inline-block text-yellow-400 mr-1" 
+        fill="#FFD700"
+        strokeWidth={1}
       />
     );
   }
@@ -35,7 +37,9 @@ const StarDisplay = ({ points, size = 'md', className = '' }: StarDisplayProps) 
       <Star 
         key="half" 
         size={starSize}
-        className="inline-block text-yellow-400 mr-1 drop-shadow-lg" 
+        className="inline-block text-yellow-400 mr-1" 
+        fill="#FFD700"
+        strokeWidth={1}
         style={{ clipPath: 'inset(0 50% 0 0)' }} 
       />
     );

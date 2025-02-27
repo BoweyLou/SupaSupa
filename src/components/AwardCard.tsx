@@ -8,6 +8,7 @@ import StarDisplay from './StarDisplay';
 import { getIconByName } from './IconSelector';
 import { useTheme } from '@/contexts/ThemeContext';
 import IconSelector from './IconSelector';
+import { createPortal } from 'react-dom';
 
 export interface Award {
   id: string;
@@ -258,26 +259,49 @@ const AwardCard: React.FC<AwardCardProps> = ({
     '--brutalist-card-shadow-color': award.customColors?.shadowColor || theme.shadowColor,
   } as React.CSSProperties;
 
+  // Get the background color for gradient
+  const bgColor = award.customColors?.backgroundColor || theme.backgroundColor;
+  
+  // Function to create a transparent version of a color (currently unused)
+  // const getTransparentColor = (color: string) => {
+  //   if (color.startsWith('rgb')) {
+  //     return color.replace(/rgba?\(([^)]+)\)/, 'rgba($1, 0)');
+  //   }
+  //   return color;
+  // };
+  
+  // const transparentBgColor = getTransparentColor(bgColor);
+  
+  // Get the card background color based on theme
+  const cardBgColor = document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff';
+
   return (
     <div className="brutalist-card brutalist-card--themed" style={cardStyle}>
-      <div className="brutalist-card__header">
-        <div className="brutalist-card__icon">
-          <IconComponent />
+      {/* Apply background color only to the header section with a gradient fade */}
+      <div 
+        className="brutalist-card__header-wrapper" 
+        style={{
+          background: `linear-gradient(180deg, ${bgColor} 0%, ${bgColor} 30%, ${cardBgColor} 100%)`
+        }}
+      >
+        <div className="brutalist-card__header">
+          <div className="brutalist-card__icon">
+            <IconComponent />
+          </div>
+          <h3 className="brutalist-card__title">{award.title}</h3>
         </div>
-        <h3 className="brutalist-card__title">{award.title}</h3>
-        <div className="brutalist-card__points">{award.points} pts</div>
       </div>
       
       {award.description && (
         <div className="brutalist-card__message">{award.description}</div>
       )}
       
-      {/* Add star display */}
       <div className="brutalist-card__stars">
         <StarDisplay 
           points={award.points} 
           size="lg"
         />
+        <div className="brutalist-card__points">{award.points} pts</div>
       </div>
       
       {/* Display redemption and lockout information */}
@@ -361,8 +385,8 @@ const AwardCard: React.FC<AwardCardProps> = ({
       </div>
 
       {/* Edit Modal for Award */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+      {isEditModalOpen && typeof window === 'object' && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
           <div className="brutalist-modal max-w-md w-[95%] max-h-[90vh] overflow-y-auto m-2 p-4 relative">
             <h2 className="brutalist-modal__title">Edit Award</h2>
             {editError && <p className="text-red-500 mb-4">{editError}</p>}
@@ -597,7 +621,8 @@ const AwardCard: React.FC<AwardCardProps> = ({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

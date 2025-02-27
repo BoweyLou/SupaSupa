@@ -13,16 +13,16 @@ interface PointsDisplayProps {
   showFamilyPoints?: boolean;
 }
 
-// Updated renderStars function with soft glow and multi-line support
+// Updated renderStars function with solid stars and no shadow
 const renderStars = (points: number) => {
   const fullStars = Math.floor(points / 10);
   const hasHalfStar = points % 10 >= 5;
   const stars = [];
   for (let i = 0; i < fullStars; i++) {
-    stars.push(<Star key={`full-${i}`} className="inline-block text-yellow-400 mr-1 drop-shadow-lg" />);
+    stars.push(<Star key={`full-${i}`} className="inline-block text-yellow-400 mr-1" fill="#FFD700" strokeWidth={1} />);
   }
   if (hasHalfStar) {
-    stars.push(<Star key="half" className="inline-block text-yellow-400 mr-1 drop-shadow-lg" style={{ clipPath: 'inset(0 50% 0 0)' }} />);
+    stars.push(<Star key="half" className="inline-block text-yellow-400 mr-1" fill="#FFD700" strokeWidth={1} style={{ clipPath: 'inset(0 50% 0 0)' }} />);
   }
   const maxStarsPerRow = 10;
   const rows = [];

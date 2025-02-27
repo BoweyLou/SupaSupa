@@ -24,11 +24,10 @@
 
 /* Add to existing animated-gradient.css */
 .star-display-large {
-  transform: scale(1.5);
-  filter: drop-shadow(0 0 8px rgba(255,215,0,0.8));
+  transform: scale(2.0);
 }
 
 .star-display-large svg {
   fill: #FFD700;
-  stroke: none;
+  stroke-width: 1;
 } 
