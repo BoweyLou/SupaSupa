@@ -85,40 +85,23 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
     setSelectedIcon(quest.icon || 'CheckCircle');
   }, [quest]);
   
-  // Add effect to log computed styles after render
+  // For screen size detection
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Detect screen size
   useEffect(() => {
-    if (titleRef.current) {
-      const styles = window.getComputedStyle(titleRef.current);
-      console.log('QuestCard - Title computed styles:', {
-        marginLeft: styles.marginLeft,
-        marginTop: styles.marginTop,
-        width: styles.width,
-        padding: styles.padding,
-        paddingLeft: styles.paddingLeft,
-        paddingRight: styles.paddingRight,
-        textAlign: styles.textAlign,
-        display: styles.display,
-        position: styles.position
-      });
-    }
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 480);
+    };
     
-    if (cardRef.current) {
-      const brutalistCardTitle = cardRef.current.querySelector('.brutalist-card__title');
-      if (brutalistCardTitle) {
-        console.log('QuestCard - brutalist-card__title class element found:', brutalistCardTitle);
-        const styles = window.getComputedStyle(brutalistCardTitle as Element);
-        console.log('QuestCard - .brutalist-card__title class computed styles:', {
-          marginLeft: styles.marginLeft,
-          marginTop: styles.marginTop,
-          width: styles.width,
-          padding: styles.padding,
-          paddingLeft: styles.paddingLeft,
-          paddingRight: styles.paddingRight
-        });
-      } else {
-        console.log('QuestCard - No .brutalist-card__title class element found');
-      }
-    }
+    // Check on mount
+    checkScreenSize();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkScreenSize);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
   const handleComplete = () => {
@@ -258,6 +241,9 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
     }
   };
 
+  // Adjust maxStarsPerRow based on screen size
+  const maxStarsPerRow = isMobile ? 5 : 7;
+
   return (
     <div className="brutalist-card brutalist-card--themed" style={cardStyle} ref={cardRef}>
       <div 
@@ -286,8 +272,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
             left: '50%', 
             transform: 'translateX(-50%)', 
             top: '20px',
-            width: '72px',
-            height: '72px',
+            width: isMobile ? '50px' : '72px',
+            height: isMobile ? '50px' : '72px',
             backgroundColor: isDarkMode ? '#374151' : 'white',
             borderRadius: '50%',
             boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
@@ -303,18 +289,12 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
         </div>
         <h3 
           ref={titleRef}
-          className="" 
+          className="brutalist-card__title" 
           style={{ 
-            marginLeft: '0', 
-            marginTop: '100px', 
-            textAlign: 'center',
-            width: '100%',
-            padding: '0 1.5rem',
+            marginTop: isMobile ? '70px' : '100px', 
+            fontSize: isMobile ? '1.25rem' : '1.5rem',
             fontWeight: 500,
-            color: isDarkMode ? '#f9fafb' : '#1f2937', 
-            fontSize: '1.5rem',
-            position: 'relative',
-            zIndex: 2,
+            color: isDarkMode ? '#f9fafb' : '#1f2937',
             textShadow: '0 0 1px white, 0 0 2px white'
           }}
         >
@@ -325,19 +305,18 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       <div 
         className="brutalist-card__message" 
         style={{ 
-          marginTop: '10px', 
-          position: 'relative', 
-          zIndex: 2,
+          padding: isMobile ? '0 1rem' : '0 1.5rem',
           textShadow: '0 0 1px white, 0 0 2px white'
         }}
       >
         {updatedQuest.description}
       </div>
       
-      <div className="brutalist-card__stars" style={{ marginTop: '15px', position: 'relative', zIndex: 2 }}>
+      <div className="brutalist-card__stars">
         <StarDisplay 
           points={updatedQuest.points} 
-          size="lg"
+          size={isMobile ? "md" : "lg"}
+          maxStarsPerRow={maxStarsPerRow}
         />
         <div className="brutalist-card__points">{updatedQuest.points} pts</div>
       </div>

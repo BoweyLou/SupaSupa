@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Responsive card system
+  - Implemented CSS Grid layout for responsive card grids 
+  - Created CardGrid component for consistent card layouts
+  - Updated QuestCard component to adapt to different screen sizes
+  - Enhanced StarDisplay component with responsive star sizing and layout
+  - Created detailed documentation in `docs/ResponsiveCardSystem.md`
+  - Optimized layout for mobile, tablet, and desktop viewports
+  - Added screen size detection for adaptive component rendering
+  - Improved performance through responsive image and component sizing
+  - Implemented CardGrid across all dashboard sections for consistent UI
+  - Enhanced CompletedTaskCard to display child name for better context
 - Brutalist design system
   - Created new brutalist CSS styles in `src/app/brutalist.css`
   - Updated AwardCard and QuestCard components to use brutalist design

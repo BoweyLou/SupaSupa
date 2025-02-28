@@ -12,6 +12,7 @@ interface CompletedTaskCardProps {
     description?: string;
     completedAt?: string;
     points?: number;
+    childName?: string;
   };
 }
 
@@ -22,6 +23,7 @@ const CompletedTaskCard: React.FC<CompletedTaskCardProps> = ({ task }) => {
       {task.description && <p>{task.description}</p>}
       {task.completedAt && <p className="text-sm text-gray-500">Completed at: {new Date(task.completedAt).toLocaleString()}</p>}
       {task.points !== undefined && <p className="text-sm text-gray-700">Points: {task.points}</p>}
+      {task.childName && <p className="text-sm text-blue-600">Completed by: {task.childName}</p>}
     </div>
   );
 };

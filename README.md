@@ -14,6 +14,7 @@ A modern web application built with Next.js and Supabase, featuring authenticati
 - Customizable bonus awards with icon and color selection
 - Brutalist design system with customizable cards, colors, and icons
 - Expanded icon categories for kids' activities, chores, and school tasks
+- Responsive card system optimized for mobile, tablet, and desktop devices
 
 ## Getting Started
 
@@ -82,6 +83,7 @@ Comprehensive documentation about the SupaSupa application is available in the `
 - [Database Relationships](docs/database_relationships.md) - Overview of the relationships between tables
 - [Brutalist Design System](docs/BrutalistDesignSystem.md) - Information about the design system
 - [Icon Selector](docs/IconSelector.md) - Guide to using icons for quests and awards
+- [Responsive Card System](docs/ResponsiveCardSystem.md) - Details about the responsive card layout implementation
 
 See the [Documentation README](docs/README.md) for more information.
 
@@ -139,8 +141,19 @@ The application now features a brutalist design system that provides a bold, geo
   - School activities (homework, reading, writing, etc.)
   - General activities (biking, cooking, movies, etc.)
 
+### Responsive Card System
+
+The application features a fully responsive card system that adapts to different screen sizes:
+- Mobile devices (up to 480px): 1 card per row with optimized sizing
+- Small tablets (481px to 768px): 2 cards per row
+- Large tablets (769px to 1024px): 3 cards per row
+- Desktop (1025px and above): 4 cards per row
+
+Components automatically adjust their layout, spacing, and element sizes based on the viewport, ensuring an optimal user experience across all devices.
+
 For detailed information about the brutalist design system, see [docs/BrutalistDesignSystem.md](docs/BrutalistDesignSystem.md).
 For a complete guide to available icons, see [docs/IconSelector.md](docs/IconSelector.md).
+For details about the responsive card system, see [docs/ResponsiveCardSystem.md](docs/ResponsiveCardSystem.md).
 
 For detailed schema information, see [docs/database_schema.md](docs/database_schema.md).
 For information about the enhanced award system, see [docs/Features/EnhancedAwardSystem.md](docs/Features/EnhancedAwardSystem.md).

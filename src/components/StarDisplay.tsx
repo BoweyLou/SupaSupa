@@ -1,22 +1,60 @@
 import { Star } from 'lucide-react';
+import React from 'react';
 
 interface StarDisplayProps {
   points: number;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  maxStarsPerRow?: number; // Added for more control
 }
 
-const StarDisplay = ({ points, size = 'md', className = '' }: StarDisplayProps) => {
+const StarDisplay = ({ 
+  points, 
+  size = 'md', 
+  className = '',
+  maxStarsPerRow 
+}: StarDisplayProps) => {
   const fullStars = Math.floor(points / 10);
   const hasHalfStar = points % 10 >= 5;
   const stars = [];
 
-  // Determine star size - increase all sizes by 25%
-  const starSize = {
-    sm: Math.round(18 * 1.25), // ~22
-    md: Math.round(22 * 1.25), // ~28
-    lg: Math.round(28 * 1.25)  // ~35
-  }[size];
+  // Determine star size - responsive sizes based on viewports
+  const getStarSize = () => {
+    // Base sizes
+    const baseSize = {
+      sm: 18,
+      md: 22,
+      lg: 28
+    }[size];
+    
+    // Scale based on viewport
+    let scaleFactor = 1.25; // Default scale
+    
+    // Adjust scale based on screen width for more responsive sizing
+    // We'll check through CSS and React
+    if (typeof window !== 'undefined') {
+      const screenWidth = window.innerWidth;
+      if (screenWidth <= 480) {
+        // Mobile devices - slightly smaller
+        scaleFactor = 1.1;
+      } else if (screenWidth <= 768) {
+        // Tablets - medium size
+        scaleFactor = 1.2;
+      } else {
+        // Desktops - original size
+        scaleFactor = 1.25;
+      }
+    }
+    
+    return Math.round(baseSize * scaleFactor);
+  };
+  
+  const starSize = getStarSize();
+  
+  // Determine max stars per row based on available width and props
+  const starsPerRow = maxStarsPerRow || (
+    typeof window !== 'undefined' && window.innerWidth <= 480 ? 5 : 7
+  );
 
   // Create full stars
   for (let i = 0; i < fullStars; i++) {
@@ -59,14 +97,13 @@ const StarDisplay = ({ points, size = 'md', className = '' }: StarDisplayProps) 
     );
   }
 
-  // Group stars into rows of 7 for better display
-  const maxStarsPerRow = 7;
+  // Group stars into rows with responsive number of stars per row
   const rows = [];
   
-  for (let i = 0; i < stars.length; i += maxStarsPerRow) {
+  for (let i = 0; i < stars.length; i += starsPerRow) {
     rows.push(
       <div key={`row-${i}`} className="flex justify-center mb-1">
-        {stars.slice(i, i + maxStarsPerRow)}
+        {stars.slice(i, i + starsPerRow)}
       </div>
     );
   }

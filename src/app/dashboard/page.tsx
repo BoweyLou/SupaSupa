@@ -23,6 +23,7 @@ import Awards from '@/pages/child/Awards';
 import ClaimedAwards from '@/components/ClaimedAwards';
 import DashboardAccordion from '@/components/DashboardAccordion';
 import ViewToggle, { ViewMode } from '@/components/ViewToggle';
+import CardGrid from '@/components/CardGrid';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -101,17 +102,16 @@ function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tas
         </button>
       </div>
       {expanded && tasks.length > 0 && (
-        <ul className="mt-2">
+        <CardGrid className="mt-2">
           {tasks.map((task: Quest) => (
-            <li key={task.id}>
-              <QuestCard 
-                quest={task} 
-                userRole="child" 
-                onComplete={onComplete} 
-              />
-            </li>
+            <QuestCard 
+              key={task.id}
+              quest={task} 
+              userRole="child" 
+              onComplete={onComplete} 
+            />
           ))}
-        </ul>
+        </CardGrid>
       )}
       {expanded && tasks.length === 0 && (
         <p className="mt-2 text-gray-500">No tasks available</p>
@@ -1226,16 +1226,16 @@ export default function DashboardPage() {
 
           {completedTasksForThisChild.length > 0 && (
             <DashboardSection title="Today's Completed Tasks">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              <CardGrid>
                 {completedTasksForThisChild.map((task: Quest) => (
                   <CompletedTaskCard key={task.id} task={task} />
                 ))}
-              </div>
+              </CardGrid>
             </DashboardSection>
           )}
 
           <DashboardSection title="Bonus Awards">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+            <CardGrid>
               {bonusAwards && bonusAwards.map((b: BonusAward) => {
                 const isAwarded = (b.instances || []).some((instance: BonusAwardInstance) => instance.assigned_child_id === child.id);
                 const awardedAt = (b.instances || []).find((instance: BonusAwardInstance) => instance.assigned_child_id === child.id)?.awarded_at;
@@ -1252,7 +1252,7 @@ export default function DashboardPage() {
                   <BonusAwardCardSimple key={b.id} bonusAward={bonusForChild} hideActions={true} />
                 );
               })}
-            </div>
+            </CardGrid>
           </DashboardSection>
 
           <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
@@ -1346,19 +1346,21 @@ export default function DashboardPage() {
                   </div>
               )}
               {activeTasks.length > 0 ? (
-                  activeTasks.map((task: Quest) => (
-                      <QuestCard 
-                          key={task.id} 
-                          quest={task} 
-                          userRole={
-                              typeof user?.user_metadata?.role === 'string' &&
-                              (user.user_metadata.role === 'child' || user.user_metadata.role === 'parent')
-                                  ? (user.user_metadata.role as "child" | "parent")
-                                  : 'parent'
-                          } 
-                          onComplete={handleTaskCompletion} 
-                      />
-                  ))
+                  <CardGrid>
+                      {activeTasks.map((task: Quest) => (
+                          <QuestCard 
+                              key={task.id} 
+                              quest={task} 
+                              userRole={
+                                  typeof user?.user_metadata?.role === 'string' &&
+                                  (user.user_metadata.role === 'child' || user.user_metadata.role === 'parent')
+                                      ? (user.user_metadata.role as "child" | "parent")
+                                      : 'parent'
+                              } 
+                              onComplete={handleTaskCompletion} 
+                          />
+                      ))}
+                  </CardGrid>
               ) : (
                   <p className="mb-4">No tasks found.</p>
               )}
@@ -1370,7 +1372,7 @@ export default function DashboardPage() {
                 <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
             </div>
             { bonusAwards.filter((b: BonusAward) => b.status === 'available').length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              <CardGrid>
                 { bonusAwards.filter((b: BonusAward) => b.status === 'available').map((bonus: BonusAward) => (
                   <BonusAwardCard 
                     key={bonus.id} 
@@ -1380,7 +1382,7 @@ export default function DashboardPage() {
                     onDelete={() => handleDeleteBonus(bonus.id)}
                   />
                 ))}
-              </div>
+              </CardGrid>
             ) : (
                 <p className="mb-4">No bonus awards available.</p>
             )}
@@ -1390,22 +1392,20 @@ export default function DashboardPage() {
           {dbUser && dbUser.role === 'parent' && (
             <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
               { awards && awards.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+                <CardGrid>
                   { awards.map((award: Award) => (
                     <AwardCard 
                       key={award.id} 
                       award={award} 
                       isParentView={true}
-                      onEdit={handleEditAward}
-                      onDelete={handleDeleteAward}
-                      onRevive={handleReviveAward}
-                      childAccounts={children}
-                      currentFamilyId={dbUser?.family_id}
+                      onEdit={(awardId, data) => handleEditAward(awardId, data)}
+                      onDelete={(awardId) => handleDeleteAward(awardId)}
+                      onRevive={(awardId) => handleReviveAward(awardId)}
                     />
                   ))}
-                </div>
+                </CardGrid>
               ) : (
-                <p className="mb-4">No awards available.</p>
+                <p className="mb-4">No awards available. Add some above!</p>
               )}
             </DashboardSection>
           )}
@@ -1414,28 +1414,17 @@ export default function DashboardPage() {
           <section className="mb-8">
               <h2 className="text-2xl font-semibold mb-4">Quest History</h2>
               {completedTasks.length > 0 ? (
-                  <table className="min-w-full bg-white">
-                      <thead>
-                          <tr>
-                              <th className="px-4 py-2 border">Task Name</th>
-                              <th className="px-4 py-2 border">Description</th>
-                              <th className="px-4 py-2 border">Completed At</th>
-                              <th className="px-4 py-2 border">Child</th>
-                              <th className="px-4 py-2 border">Points Awarded</th>
-                          </tr>
-                      </thead>
-                      <tbody>
-                          {completedTasks.map((task: Quest) => (
-                              <tr key={task.id}>
-                                  <td className="px-4 py-2 border">{task.title}</td>
-                                  <td className="px-4 py-2 border">{task.description}</td>
-                                  <td className="px-4 py-2 border">{task.completedAt}</td>
-                                  <td className="px-4 py-2 border">{children.find((child: Child) => child.id === task.assignedChildId)?.name || 'Unknown Child'}</td>
-                                  <td className="px-4 py-2 border">{task.points}</td>
-                              </tr>
-                          ))}
-                      </tbody>
-                  </table>
+                  <CardGrid>
+                      {completedTasks.map((task: Quest) => (
+                          <CompletedTaskCard 
+                              key={task.id} 
+                              task={{
+                                  ...task,
+                                  childName: children.find((child: Child) => child.id === task.assignedChildId)?.name || 'Unknown Child'
+                              }} 
+                          />
+                      ))}
+                  </CardGrid>
               ) : (
                   <p>No completed quests</p>
               )}
