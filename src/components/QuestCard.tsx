@@ -11,6 +11,11 @@ import { getIconByName } from './IconSelector';
 import { useTheme } from '@/contexts/ThemeContext';
 import IconSelector from './IconSelector';
 import { createPortal } from 'react-dom';
+import { showToast } from '@/utils/toast';
+import dynamic from 'next/dynamic';
+
+// Import confetti with dynamic import to avoid SSR issues
+const ReactConfetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 export interface Quest {
   id: string;
@@ -51,7 +56,6 @@ export interface QuestCardProps {
 }
 
 const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hideActions, childNameMapping }) => {
-  const [showCelebration, setShowCelebration] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(quest.title);
   const [editDescription, setEditDescription] = useState(quest.description);
@@ -71,6 +75,10 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
   
   // Add state to track if the quest has been updated
   const [updatedQuest, setUpdatedQuest] = useState<Quest>(quest);
+
+  // Add state for confetti animation
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [windowDimensions, setWindowDimensions] = useState<{ width: number; height: number } | null>(null);
 
   // Add ref for the title element
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -92,6 +100,10 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth <= 480);
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
     };
     
     // Check on mount
@@ -103,17 +115,28 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
     // Cleanup
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+  
+  // Hide confetti after 5 seconds
+  useEffect(() => {
+    if (showConfetti) {
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showConfetti]);
 
   const handleComplete = () => {
     if (onComplete) onComplete(quest.id);
-    setShowCelebration(true);
-    setTimeout(() => setShowCelebration(false), 3000);
+    setShowConfetti(true);
+    showToast.success(`Great job! Quest "${quest.title}" completed! 🎉`);
   };
 
   const handleApprove = () => {
     if (onComplete) onComplete(quest.id, 'approve');
-    setShowCelebration(true);
-    setTimeout(() => setShowCelebration(false), 3000);
+    setShowConfetti(true);
+    showToast.success(`Quest "${quest.title}" approved! ${quest.points} points awarded! 🌟`);
   };
 
   const handleReject = () => {
@@ -246,6 +269,25 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
 
   return (
     <div className="brutalist-card brutalist-card--themed" style={cardStyle} ref={cardRef}>
+      {/* Confetti component */}
+      {showConfetti && windowDimensions && (
+        <ReactConfetti
+          width={windowDimensions.width}
+          height={windowDimensions.height}
+          recycle={false}
+          numberOfPieces={200}
+          gravity={0.3}
+          colors={['#FFD700', '#FFA500', '#FF4500', '#FF6347', '#8A2BE2', '#4169E1', '#00BFFF']}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            zIndex: 1000,
+            pointerEvents: 'none'
+          }}
+        />
+      )}
+      
       <div 
         className="brutalist-card__header-wrapper" 
         style={{
@@ -393,12 +435,6 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
         
         {getStatusDisplay()}
       </div>
-
-      {showCelebration && (
-        <div className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center pointer-events-none animate-fadeInOut z-40">
-          <span className="text-4xl">🎉 QUEST COMPLETED! 🎉</span>
-        </div>
-      )}
 
       {isEditModalOpen && typeof window === 'object' && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
