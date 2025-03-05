@@ -65,8 +65,8 @@ const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({ currentTimezone, on
         
         const formatter = new Intl.DateTimeFormat('en-US', options);
         setLocalTime(formatter.format(now));
-      } catch (e) {
-        console.error('Error formatting time for timezone:', selectedTimezone, e);
+      } catch (error) {
+        console.error('Error formatting time for timezone:', selectedTimezone, error);
         setLocalTime('Invalid timezone');
       }
     };
@@ -112,7 +112,7 @@ const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({ currentTimezone, on
             label: `(UTC${offsetStr}) ${timezone.replace(/_/g, ' ').replace(/\//g, ' / ')}`,
             name
           };
-        } catch (_error) {
+        } catch {
           // Handle any errors that might occur when formatting timezones
           return {
             timezone,

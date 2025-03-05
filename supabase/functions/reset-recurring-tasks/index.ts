@@ -2,6 +2,7 @@
 // This function resets the status of recurring tasks (daily/weekly) when it's midnight in the user's local timezone
 // It's designed to be called hourly by a scheduled cron job
 
+// @ts-ignore: Deno module import
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1'
 
 // Define interface for task responses from the database
@@ -74,17 +75,20 @@ Deno.serve(async (req: Request) => {
       );
     }
     
-    if (!users || users.length === 0) {
+    // Ensure users is an array, even if data is null
+    const userArray: UserWithTimezone[] = users || [];
+    
+    if (userArray.length === 0) {
       return new Response(
         JSON.stringify({ message: 'No users found', count: 0 }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`Found ${users.length} parent users`);
+    console.log(`Found ${userArray.length} parent users`);
     
     // Step 2: Filter users where it's currently around midnight in their local timezone
-    const usersAtMidnight = users.filter((user: UserWithTimezone) => {
+    const usersAtMidnight = userArray.filter((user: UserWithTimezone) => {
       try {
         // Create Date object for current time in user's timezone
         const options: Intl.DateTimeFormatOptions = { 
