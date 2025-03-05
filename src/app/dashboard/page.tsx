@@ -24,6 +24,7 @@ import ClaimedAwards from '@/components/ClaimedAwards';
 import DashboardAccordion from '@/components/DashboardAccordion';
 import ViewToggle, { ViewMode } from '@/components/ViewToggle';
 import CardGrid from '@/components/CardGrid';
+import TimezoneSelector from '@/components/TimezoneSelector';
 
 // Define a Child interface for proper typing of child accounts
 interface Child {
@@ -44,6 +45,7 @@ interface DBUser {
   role: string;
   points: number;
   user_metadata?: Record<string, unknown>;
+  timezone?: string;
 }
 
 // NEW: Define BonusAward interface
@@ -633,78 +635,9 @@ export default function DashboardPage() {
       }
     }, [children, fetchTasks, fetchChildTasks, updateChildPoints]);
 
-    // Temporary manual reset for recurring tasks (for local development)
-    const handleManualResetRecurringTasks = async () => {
-      const now = new Date();
-      // Set a threshold to allow resetting tasks up to 24 hours before they are due
-      const resetThreshold = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      console.log('handleManualResetRecurringTasks initiated at:', now.toISOString());
-      console.log('Fetching tasks due for reset with next_occurrence <=:', resetThreshold.toISOString());
-
-      const { data: dueTasks, error: selectError } = await supabase
-        .from('tasks')
-        .select('*')
-        .in('frequency', ['daily', 'weekly'])
-        .lte('next_occurrence', resetThreshold.toISOString());
-
-      if (selectError && Object.keys(selectError).length > 0) {
-        console.error('Error fetching due tasks:', selectError);
-        alert('Error fetching due tasks. Please check the console for details.');
-        return;
-      }
-
-      console.log('Fetched due tasks:', dueTasks);
-      if (!dueTasks || dueTasks.length === 0) {
-        alert('No recurring tasks are due for a reset.');
-        return;
-      }
-
-      const updates = dueTasks.map(async (task: TaskResponse) => {
-        let newNextOccurrence;
-        if (task.frequency === 'daily') {
-          newNextOccurrence = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        } else if (task.frequency === 'weekly') {
-          newNextOccurrence = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        } else {
-          newNextOccurrence = now;
-        }
-
-        // Always reset to 'assigned' so the task is actionable
-        const newStatus = 'assigned';
-
-        console.log(`Updating task ${task.id}: current next_occurrence ${task.next_occurrence} -> new next_occurrence:`, newNextOccurrence.toISOString());
-
-        try {
-          const response = await supabase
-            .from('tasks')
-            .update({
-              status: newStatus,
-              next_occurrence: newNextOccurrence.toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', task.id);
-          
-          if (response.error) {
-            console.error(`Response error for task ${task.id}:`, response.error);
-            throw response.error;
-          }
-
-          console.log(`Updated task ${task.id} successfully:`, response);
-          return response;
-        } catch (error: unknown) {
-          console.error(`Error updating task ${task.id}:`, error instanceof Error ? error.message : error);
-          throw error;
-        }
-      });
-
-      try {
-        await Promise.all(updates);
-        alert('Recurring tasks have been reset.');
-      } catch (updateError: unknown) {
-        console.error('Error during task updates:', updateError);
-        alert('An error occurred while updating tasks. Check console for details.');
-      }
-    };
+    // Note: Manual reset for recurring tasks has been removed.
+    // Recurring tasks are now automatically reset by a Supabase Edge Function
+    // that runs hourly and resets tasks at the user's local midnight.
 
     // Update the family fetch effect for parent users
     useEffect(() => {
@@ -1206,6 +1139,31 @@ export default function DashboardPage() {
         localStorage.setItem('dashboardViewMode', newMode);
       }
     }, []);
+    
+    // NEW: Handle timezone changes
+    const handleTimezoneChange = useCallback(async (newTimezone: string) => {
+      if (!dbUser?.id) return;
+      
+      try {
+        const { error } = await supabase
+          .from('users')
+          .update({ timezone: newTimezone })
+          .eq('id', dbUser.id);
+          
+        if (error) {
+          console.error('Error updating timezone:', error);
+          setError('Failed to update timezone setting');
+          return;
+        }
+        
+        // Update local state
+        setDBUser(prev => prev ? { ...prev, timezone: newTimezone } : null);
+        setSuccessMessage('Timezone updated successfully');
+      } catch (err) {
+        console.error('Error in handleTimezoneChange:', err);
+        setError('An unexpected error occurred while updating timezone');
+      }
+    }, [dbUser?.id]);
 
     // NEW: Function to render child content for accordion or tabs
     const renderChildContent = useCallback((child: Child) => {
@@ -1316,15 +1274,10 @@ export default function DashboardPage() {
               </form>
           </section>
 
-          {/* Manual Recurring Tasks Reset Button */}
-          <section className="mb-8">
-            <button 
-              onClick={handleManualResetRecurringTasks}
-              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-            >
-              Manual Reset Recurring Tasks
-            </button>
-          </section>
+          {/* 
+          Manual reset button removed - now handled automatically by Supabase Edge Function
+          scheduled to run daily at midnight UTC
+          */}
 
           {/* Parent Tasks Section */}
           <DashboardSection title="Tasks" toggleable={true} defaultExpanded={true}>
@@ -1430,10 +1383,27 @@ export default function DashboardPage() {
               )}
           </section>
 
-          {/* NEW: View Mode Toggle */}
+          {/* NEW: Dashboard Settings Section with Timezone Selection */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Dashboard Settings</h2>
-            <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+            
+            {/* View Mode Toggle */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">Display Mode</h3>
+              <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+            </div>
+            
+            {/* Timezone Selection */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">Your Timezone</h3>
+              <p className="text-sm text-gray-600 mb-2">
+                Select your timezone to ensure recurring tasks reset at your local midnight.
+              </p>
+              <TimezoneSelector 
+                currentTimezone={dbUser?.timezone || 'America/New_York'} 
+                onTimezoneChange={handleTimezoneChange}
+              />
+            </div>
           </section>
         </>
       );
@@ -1450,7 +1420,6 @@ export default function DashboardPage() {
       handleEditClick,
       handleDeleteChild,
       handleAddChild,
-      handleManualResetRecurringTasks,
       activeTasks,
       familyId,
       fetchTasks,
@@ -1468,7 +1437,8 @@ export default function DashboardPage() {
       handleReviveAward,
       completedTasks,
       viewMode,
-      handleViewModeChange
+      handleViewModeChange,
+      handleTimezoneChange
     ]);
 
     // NEW: Create accordion sections based on children and parent
