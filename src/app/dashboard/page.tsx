@@ -331,7 +331,7 @@ export default function DashboardPage() {
     }, [familyId]);
 
     // Function to update a child's points in the local state
-    const updateChildPoints = (childId: string, newPoints: number) => {
+    const updateChildPoints = useCallback((childId: string, newPoints: number) => {
         setChildren((prevChildren: Child[]) => 
             prevChildren.map((child: Child) => 
                 child.id === childId 
@@ -339,7 +339,7 @@ export default function DashboardPage() {
                     : child
             )
         );
-    };
+    }, []);
 
     // Set up real-time subscription for points updates
     useEffect(() => {
@@ -1229,71 +1229,6 @@ export default function DashboardPage() {
       }
     }, [dbUser?.id]);
 
-    // NEW: Function to render child content for accordion or tabs
-    const renderChildContent = useCallback((child: Child) => {
-      const childTasksList = (childTasks[child.id] || []).filter((task: Quest) => task.status !== 'completed');
-      const completedTasksForThisChild = (childTasks[child.id] || []).filter((task: Quest) => task.status === 'completed' && isToday(task.completedAt));
-      
-      return (
-        <div>
-          <PointsDisplay showFamilyPoints={false} childAccounts={[child]} />
-          
-          <DashboardSection title={<> <Compass className="inline-block mr-2" /> Quest</>}>
-            <ChildDashboardSection
-              child={child}
-              tasks={childTasksList}
-              onComplete={handleTaskCompletion}
-              viewMode={viewMode}
-            />
-          </DashboardSection>
-
-          {completedTasksForThisChild.length > 0 && (
-            <DashboardSection title="Today's Completed Tasks">
-              <CardGrid>
-                {completedTasksForThisChild.map((task: Quest) => (
-                  <CompletedTaskCard key={task.id} task={task} />
-                ))}
-              </CardGrid>
-            </DashboardSection>
-          )}
-
-          <DashboardSection title="Bonus Awards">
-            <CardGrid>
-              {bonusAwards && bonusAwards.map((b: BonusAward) => {
-                const isAwarded = (b.instances || []).some((instance: BonusAwardInstance) => instance.assigned_child_id === child.id);
-                const awardedAt = (b.instances || []).find((instance: BonusAwardInstance) => instance.assigned_child_id === child.id)?.awarded_at;
-                const bonusForChild = {
-                  id: b.id,
-                  title: b.title,
-                  points: b.points,
-                  status: (isAwarded ? 'awarded' : 'available') as "awarded" | "available",
-                  awarded_at: awardedAt,
-                  icon: b.icon,
-                  color: b.color
-                };
-                return (
-                  <BonusAwardCardSimple key={b.id} bonusAward={bonusForChild} hideActions={true} />
-                );
-              })}
-            </CardGrid>
-          </DashboardSection>
-
-          <DashboardSection title={<> <AwardIcon className="inline-block mr-2" /> Reward</>}>
-            <Awards activeChildId={child.id} />
-          </DashboardSection>
-
-          <DashboardSection title="Claimed Rewards">
-            <ClaimedAwards activeChildId={child.id} />
-          </DashboardSection>
-
-          {/* Add view toggle for child users too */}
-          <DashboardSection title="Settings">
-            <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-          </DashboardSection>
-        </div>
-      );
-    }, [childTasks, bonusAwards, handleTaskCompletion, viewMode, handleViewModeChange]);
-
     // NEW: Function to render parent content for accordion or tabs
     const renderParentContent = useCallback((): React.ReactElement => {
       console.log('Rendering parent content with tasks:', {
@@ -1483,7 +1418,6 @@ export default function DashboardPage() {
       fetchChildTasks,
       fetchAwards,
       handleTaskCompletion,
-      user,
       bonusAwards,
       handleAwardBonus,
       handleEditBonus,
@@ -1531,7 +1465,7 @@ export default function DashboardPage() {
       }
       
       return sections;
-    }, [children, childTasks, viewMode, dbUser?.role]);
+    }, [children, childTasks, handleTaskCompletion, viewMode, dbUser?.role, renderParentContent]);
 
     if (loading) {
         return (
