@@ -34,6 +34,9 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
   // Use custom color if available, otherwise use the default color for the icon
   const iconColor = bonusAward.color || iconLookup?.color || '#FFD700';
 
+  // Check if the award was awarded today
+  const isAwardedToday = bonusAward.awarded_at && new Date(bonusAward.awarded_at).toDateString() === new Date().toDateString();
+
   // Create custom colors based on the icon color or use theme defaults when needed
   const customColors = {
     borderColor: bonusAward.status === 'awarded' ? '#FFD700' : (iconColor || theme.borderColor),
@@ -52,8 +55,8 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
     '--brutalist-card-shadow-color': customColors.shadowColor,
     // For awarded cards, apply the box-shadow directly rather than using a CSS variable
     ...(bonusAward.status === 'awarded' ? { boxShadow: '0 0 10px 2px rgba(255,215,0,0.7)' } : {}),
-    // For available cards, make them slightly faded
-    opacity: bonusAward.status === 'available' ? 0.85 : 1,
+    // For available cards or cards not awarded today, make them slightly faded
+    opacity: bonusAward.status === 'available' || !isAwardedToday ? 0.5 : 1,
   } as React.CSSProperties;
 
   // Check if dark mode is enabled
@@ -116,7 +119,9 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
       </div>
 
       {bonusAward.status === "awarded" && (
-        <div className="text-green-500 text-xs mt-1 text-center">Awarded!</div>
+        <div className="text-green-500 text-xs mt-1 text-center">
+          {isAwardedToday ? "Awarded Today!" : "Awarded"}
+        </div>
       )}
       
       {!hideActions && bonusAward.status === "available" && (

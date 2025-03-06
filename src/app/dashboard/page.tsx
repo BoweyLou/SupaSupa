@@ -1430,26 +1430,6 @@ export default function DashboardPage() {
             </DashboardSection>
           )}
 
-          {/* Quest History Section */}
-          <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Quest History</h2>
-              {completedTasks.length > 0 ? (
-                  <CardGrid>
-                      {completedTasks.map((task: Quest) => (
-                          <CompletedTaskCard 
-                              key={task.id} 
-                              task={{
-                                  ...task,
-                                  childName: children.find((child: Child) => child.id === task.assignedChildId)?.name || 'Unknown Child'
-                              }} 
-                          />
-                      ))}
-                  </CardGrid>
-              ) : (
-                  <p>No completed quests</p>
-              )}
-          </section>
-
           {/* NEW: Dashboard Settings Section with Timezone Selection */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Dashboard Settings</h2>
