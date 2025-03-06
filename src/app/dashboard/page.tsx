@@ -94,7 +94,12 @@ interface TaskResponse {
 }
 
 // ChildDashboardSection: A reusable component to display tasks for a child account
-function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tasks: Quest[]; onComplete: (questId: string) => void; }) {
+function ChildDashboardSection({ child, tasks, onComplete, viewMode }: { 
+  child: Child; 
+  tasks: Quest[]; 
+  onComplete: (questId: string) => void;
+  viewMode: ViewMode;
+}) {
   const [expanded, setExpanded] = useState(true);
   return (
     <div>
@@ -105,7 +110,7 @@ function ChildDashboardSection({ child, tasks, onComplete }: { child: Child; tas
         </button>
       </div>
       {expanded && tasks.length > 0 && (
-        <CardGrid className="mt-2">
+        <CardGrid className="mt-2" viewMode={viewMode}>
           {tasks.map((task: Quest) => (
             <QuestCard 
               key={task.id}
@@ -1238,6 +1243,7 @@ export default function DashboardPage() {
               child={child}
               tasks={childTasksList}
               onComplete={handleTaskCompletion}
+              viewMode={viewMode}
             />
           </DashboardSection>
 
@@ -1289,106 +1295,103 @@ export default function DashboardPage() {
     }, [childTasks, bonusAwards, handleTaskCompletion, viewMode, handleViewModeChange]);
 
     // NEW: Function to render parent content for accordion or tabs
-    const renderParentContent = useCallback(() => {
+    const renderParentContent = useCallback((): React.ReactElement => {
       console.log('Rendering parent content with tasks:', {
         activeTasksCount: activeTasks.length,
         completedTasksCount: completedTasks.length
       });
+
+      // Create a mapping of child IDs to their names
+      const childNameMapping = children.reduce((acc, child) => {
+        acc[child.id] = child.name;
+        return acc;
+      }, {} as { [key: string]: string });
       
       return (
         <>
           {/* Parent Dashboard Content */}
           {/* Child Accounts Section for Parent (Child Management) */}
           <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Child Accounts</h2>
-              {children && children.length > 0 ? (
-                  <ul className="mb-4">
-                      {children.map((child: Child) => (
-                          <ChildAccountCard
-                            key={child.id}
-                            child={child}
-                            isEditing={editingChildId === child.id}
-                            editingChildName={editingChildName}
-                            onEditChange={handleEditChange}
-                            onSaveEdit={handleSaveEdit}
-                            onCancelEdit={handleCancelEdit}
-                            onEditClick={handleEditClick}
-                            onDelete={handleDeleteChild}
-                          />
-                      ))}
-                  </ul>
-              ) : (
-                  <p className="mb-4">No child accounts found.</p>
-              )}
-              <form onSubmit={handleAddChild} className="flex items-center">
-                  <input
-                      type="text"
-                      value={childName}
-                      onChange={(e) => setChildName(e.target.value)}
-                      placeholder="Child Name"
-                      className="border border-gray-300 p-2 rounded mr-2"
+            <h2 className="text-2xl font-semibold mb-4">Child Accounts</h2>
+            {children && children.length > 0 ? (
+              <ul className="mb-4">
+                {children.map((child: Child) => (
+                  <ChildAccountCard
+                    key={child.id}
+                    child={child}
+                    isEditing={editingChildId === child.id}
+                    editingChildName={editingChildName}
+                    onEditChange={handleEditChange}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={handleCancelEdit}
+                    onEditClick={handleEditClick}
+                    onDelete={handleDeleteChild}
                   />
-                  <button
-                      type="submit"
-                      disabled={childLoading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded"
-                  >
-                      {childLoading ? 'Adding...' : 'Add Child Account'}
-                  </button>
-              </form>
+                ))}
+              </ul>
+            ) : (
+              <p className="mb-4">No child accounts found.</p>
+            )}
+            <form onSubmit={handleAddChild} className="flex items-center">
+              <input
+                type="text"
+                value={childName}
+                onChange={(e) => setChildName(e.target.value)}
+                placeholder="Child Name"
+                className="border border-gray-300 p-2 rounded mr-2"
+              />
+              <button
+                type="submit"
+                disabled={childLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >
+                {childLoading ? 'Adding...' : 'Add Child Account'}
+              </button>
+            </form>
           </section>
-
-          {/* 
-          Manual reset button removed - now handled automatically by Supabase Edge Function
-          scheduled to run daily at midnight UTC
-          */}
 
           {/* Parent Tasks Section */}
           <DashboardSection title="Tasks" toggleable={true} defaultExpanded={true}>
-              {dbUser && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <AddTask 
-                          parentId={dbUser.id} 
-                          availableChildren={children} 
-                          onTaskAdded={() => {
-                              fetchTasks();
-                              fetchChildTasks();
-                          }} 
-                      />
-                      <AddAward 
-                        onAwardAdded={fetchAwards} 
-                        familyId={familyId ?? undefined} 
-                        childAccounts={children}
-                      />
-                  </div>
-              )}
-              {activeTasks.length > 0 ? (
-                  <CardGrid>
-                      {activeTasks.map((task: Quest) => {
-                        console.log('Rendering active task:', {
-                          taskId: task.id,
-                          title: task.title,
-                          status: task.status,
-                          next_occurrence: task.next_occurrence
-                        });
-                        return (
-                          <QuestCard 
-                              key={task.id} 
-                              quest={task} 
-                              userRole="parent"
-                              onComplete={handleTaskCompletion} 
-                          />
-                        );
-                      })}
-                  </CardGrid>
-              ) : (
-                  <p className="mb-4">No tasks found.</p>
-              )}
+            {dbUser && (
+              <div className="w-full mb-4">
+                <AddTask 
+                  parentId={dbUser.id} 
+                  availableChildren={children} 
+                  onTaskAdded={() => {
+                    fetchTasks();
+                    fetchChildTasks();
+                  }} 
+                />
+              </div>
+            )}
+            {activeTasks.length > 0 ? (
+              <CardGrid>
+                {activeTasks.map((task: Quest) => {
+                  console.log('Rendering active task:', {
+                    taskId: task.id,
+                    title: task.title,
+                    status: task.status,
+                    next_occurrence: task.next_occurrence
+                  });
+                  return (
+                    <QuestCard 
+                      key={task.id} 
+                      quest={task} 
+                      userRole="parent"
+                      onComplete={handleTaskCompletion}
+                      childNameMapping={childNameMapping}
+                    />
+                  );
+                })}
+              </CardGrid>
+            ) : (
+              <p className="mb-4">No tasks found.</p>
+            )}
           </DashboardSection>
 
           {/* NEW: Bonus Awards Section for Parent Dashboard */}
           <DashboardSection title="Bonus Awards" toggleable={true} defaultExpanded={true}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="w-full mb-4">
                 <AddBonusAward onBonusAdded={() => { fetchBonusAwards(); }} />
             </div>
             { bonusAwards.filter((b: BonusAward) => b.status === 'available').length > 0 ? (
@@ -1411,6 +1414,13 @@ export default function DashboardPage() {
           {/* NEW: Add a new section to display regular awards (rewards) added via AddAward */}
           {dbUser && dbUser.role === 'parent' && (
             <DashboardSection title="Awards" toggleable={true} defaultExpanded={true}>
+              <div className="w-full mb-4">
+                <AddAward 
+                  onAwardAdded={fetchAwards} 
+                  familyId={familyId ?? undefined} 
+                  childAccounts={children}
+                />
+              </div>
               { awards && awards.length > 0 ? (
                 <CardGrid>
                   { awards.map((award: Award) => (
@@ -1488,24 +1498,30 @@ export default function DashboardPage() {
       handleTimezoneChange
     ]);
 
-    // NEW: Create accordion sections based on children and parent
+    // Update the accordionSections array to include child sections
     const accordionSections = useMemo(() => {
       const sections = [];
       
-      // Add sections for each child
-      if (children && children.length > 0) {
-        children.forEach(child => {
-          sections.push({
-            id: child.id,
-            title: child.name,
-            content: renderChildContent(child),
-            isParent: false
-          });
+      // Add child sections
+      children.forEach((child: Child) => {
+        sections.push({
+          id: child.id,
+          title: child.name,
+          content: (
+            <ChildDashboardSection 
+              key={child.id} 
+              child={child} 
+              tasks={childTasks[child.id] || []} 
+              onComplete={handleTaskCompletion} 
+              viewMode={viewMode}
+            />
+          ),
+          isParent: false
         });
-      }
+      });
       
-      // Add parent section at the end
-      if (dbUser && dbUser.role === 'parent') {
+      // Add parent section if needed
+      if (dbUser?.role === 'parent') {
         sections.push({
           id: 'parent',
           title: 'Parent Dashboard',
@@ -1515,12 +1531,7 @@ export default function DashboardPage() {
       }
       
       return sections;
-    }, [
-      children, 
-      dbUser, 
-      renderChildContent,
-      renderParentContent
-    ]);
+    }, [children, childTasks, viewMode, dbUser?.role]);
 
     if (loading) {
         return (
@@ -1560,28 +1571,26 @@ export default function DashboardPage() {
                 )}
 
                 {/* NEW: Conditional rendering based on view mode */}
-                {dbUser && viewMode === 'tabs' ? (
-                  // Original Tabbed Interface
+                {viewMode === 'accordion' ? (
+                  <DashboardAccordion sections={accordionSections} gridLayout={true} />
+                ) : (
                   <div className="mt-4">
                     <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-
                     <div className="p-4 bg-white shadow">
                       {activeTab === 'parent' ? (
                         renderParentContent()
                       ) : (
-                        <>
-                          {selectedChild && renderChildContent(selectedChild)}
-                        </>
+                        selectedChild && (
+                          <ChildDashboardSection 
+                            key={selectedChild.id} 
+                            child={selectedChild} 
+                            tasks={childTasks[selectedChild.id] || []} 
+                            onComplete={handleTaskCompletion} 
+                            viewMode={viewMode}
+                          />
+                        )
                       )}
                     </div>
-                  </div>
-                ) : (
-                  // NEW: Accordion Interface
-                  <div className="mt-4">
-                    <DashboardAccordion 
-                      sections={accordionSections}
-                      gridLayout={true} // Enable grid layout for child sections on tablet+
-                    />
                   </div>
                 )}
             </main>

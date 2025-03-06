@@ -352,12 +352,24 @@ svg:not(.star-display-large svg) {
   padding: 1rem;
 }
 
+/* Stacked view layout */
+.card-grid--stacked {
+  grid-template-columns: repeat(2, 1fr) !important;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
 /* Responsive breakpoints */
 @media (max-width: 480px) {
   /* Mobile */
   .card-grid {
     grid-template-columns: 1fr; /* 1 card per row */
     gap: 1rem;
+  }
+  
+  /* In stacked view, keep 2 columns even on mobile */
+  .card-grid--stacked {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
   
   .brutalist-card {
