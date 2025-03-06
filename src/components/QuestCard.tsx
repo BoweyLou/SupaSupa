@@ -4,7 +4,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Award, Zap } from 'lucide-react';
+import { Award, Zap, Clock } from 'lucide-react';
 import { updateTask, deleteTask } from '@/repositories/tasksRepository';
 import StarDisplay from './StarDisplay';
 import { getIconByName } from './IconSelector';
@@ -26,6 +26,8 @@ export interface Quest {
   status: 'assigned' | 'in-progress' | 'pending' | 'completed' | 'failed';
   assignedChildId?: string;
   completedAt?: string; // Optional property to track the date the task was completed
+  next_occurrence?: string; // When the task will reset next
+  last_completed_at?: string; // When the task was last completed
   // New properties for brutalist design
   icon?: string; // Icon name for the quest
   customColors?: {
@@ -267,6 +269,21 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
   // Adjust maxStarsPerRow based on screen size
   const maxStarsPerRow = isMobile ? 5 : 7;
 
+  // Add function to format next occurrence date
+  const formatNextOccurrence = (dateString?: string) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 24) {
+      return `Resets in ${diffInHours} hours`;
+    } else {
+      const diffInDays = Math.round(diffInHours / 24);
+      return `Resets in ${diffInDays} days`;
+    }
+  };
+
   return (
     <div className="brutalist-card brutalist-card--themed" style={cardStyle} ref={cardRef}>
       {/* Confetti component */}
@@ -380,6 +397,22 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
               <Award size={16} />
               <span>
                 <strong>Assigned to:</strong> {childNameMapping[updatedQuest.assignedChildId] || 'Unknown'}
+              </span>
+            </div>
+          )}
+          {updatedQuest.next_occurrence && (
+            <div className="brutalist-card__info-item">
+              <Clock size={16} />
+              <span>
+                <strong>Next Reset:</strong> {formatNextOccurrence(updatedQuest.next_occurrence)}
+              </span>
+            </div>
+          )}
+          {updatedQuest.last_completed_at && (
+            <div className="brutalist-card__info-item">
+              <Award size={16} />
+              <span>
+                <strong>Last Completed:</strong> {new Date(updatedQuest.last_completed_at).toLocaleDateString()}
               </span>
             </div>
           )}

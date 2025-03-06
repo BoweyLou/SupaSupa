@@ -84,6 +84,7 @@ interface TaskResponse {
   assigned_child_id?: string;
   updated_at: string;
   next_occurrence?: string;
+  last_completed_at?: string;
   icon?: string;
   custom_colors?: {
     lowerGradientColor?: string;
@@ -376,18 +377,23 @@ export default function DashboardPage() {
           setTasks([]);
           return;
         }
-        const quests = (data as TaskResponse[]).map((task: TaskResponse) => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          points: task.reward_points,
-          frequency: task.frequency,
-          status: mapStatus(task.status) as Quest['status'],
-          assignedChildId: task.assigned_child_id,
-          completedAt: task.updated_at,
-          icon: task.icon,
-          customColors: task.custom_colors
-        }));
+        const quests = (data as TaskResponse[]).map((task: TaskResponse) => {
+          console.log('Mapping task:', task);
+          return {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            points: task.reward_points,
+            frequency: task.frequency,
+            status: mapStatus(task.status) as Quest['status'],
+            assignedChildId: task.assigned_child_id,
+            completedAt: task.updated_at,
+            next_occurrence: task.next_occurrence,
+            last_completed_at: task.last_completed_at,
+            icon: task.icon,
+            customColors: task.custom_colors
+          };
+        });
         console.log('Mapped tasks (quests):', quests);
         setTasks(quests);
       } catch (error) {
@@ -739,8 +745,61 @@ export default function DashboardPage() {
     }
 
     // Compute active and completed tasks for parent's task view
-    const activeTasks = tasks.filter((task: Quest) => task.status !== 'completed');
-    const completedTasks = tasks.filter((task: Quest) => task.status === 'completed');
+    const activeTasks = tasks.filter((task: Quest) => {
+      // Show tasks that are not completed
+      // OR tasks that are completed but haven't been reset yet (next_occurrence is in the future)
+      const isNotCompleted = task.status !== 'completed';
+      const isCompletedButNotReset = task.status === 'completed' && 
+        task.next_occurrence && 
+        new Date(task.next_occurrence) > new Date();
+      
+      console.log('Task filtering:', {
+        taskId: task.id,
+        title: task.title,
+        status: task.status,
+        next_occurrence: task.next_occurrence,
+        isNotCompleted,
+        isCompletedButNotReset,
+        willShow: isNotCompleted || isCompletedButNotReset
+      });
+      
+      return isNotCompleted || isCompletedButNotReset;
+    });
+    
+    const completedTasks = tasks.filter((task: Quest) => {
+      // Show tasks that are completed and either:
+      // 1. Have no next_occurrence (one-off tasks)
+      // 2. Have been reset (next_occurrence is in the past)
+      const isCompleted = task.status === 'completed';
+      const isOneOff = !task.next_occurrence;
+      const isReset = task.next_occurrence && new Date(task.next_occurrence) <= new Date();
+      
+      console.log('Completed task filtering:', {
+        taskId: task.id,
+        title: task.title,
+        status: task.status,
+        next_occurrence: task.next_occurrence,
+        isCompleted,
+        isOneOff,
+        isReset,
+        willShow: isCompleted && (isOneOff || isReset)
+      });
+      
+      return isCompleted && (isOneOff || isReset);
+    });
+
+    // Add debug logging for task counts
+    console.log('Task counts:', {
+      totalTasks: tasks.length,
+      activeTasks: activeTasks.length,
+      completedTasks: completedTasks.length,
+      tasks: tasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        next_occurrence: t.next_occurrence
+      }))
+    });
 
     // NEW: Function to fetch bonus awards
     const fetchBonusAwards = async () => {
@@ -1231,6 +1290,11 @@ export default function DashboardPage() {
 
     // NEW: Function to render parent content for accordion or tabs
     const renderParentContent = useCallback(() => {
+      console.log('Rendering parent content with tasks:', {
+        activeTasksCount: activeTasks.length,
+        completedTasksCount: completedTasks.length
+      });
+      
       return (
         <>
           {/* Parent Dashboard Content */}
@@ -1300,19 +1364,22 @@ export default function DashboardPage() {
               )}
               {activeTasks.length > 0 ? (
                   <CardGrid>
-                      {activeTasks.map((task: Quest) => (
+                      {activeTasks.map((task: Quest) => {
+                        console.log('Rendering active task:', {
+                          taskId: task.id,
+                          title: task.title,
+                          status: task.status,
+                          next_occurrence: task.next_occurrence
+                        });
+                        return (
                           <QuestCard 
                               key={task.id} 
                               quest={task} 
-                              userRole={
-                                  typeof user?.user_metadata?.role === 'string' &&
-                                  (user.user_metadata.role === 'child' || user.user_metadata.role === 'parent')
-                                      ? (user.user_metadata.role as "child" | "parent")
-                                      : 'parent'
-                              } 
+                              userRole="parent"
                               onComplete={handleTaskCompletion} 
                           />
-                      ))}
+                        );
+                      })}
                   </CardGrid>
               ) : (
                   <p className="mb-4">No tasks found.</p>

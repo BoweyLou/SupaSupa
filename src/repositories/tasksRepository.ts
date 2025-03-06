@@ -20,6 +20,7 @@ export interface TaskResponse {
   assigned_child_id?: string;
   updated_at: string;
   next_occurrence?: string;
+  last_completed_at?: string;
   icon?: string;
   custom_colors?: {
     lowerGradientColor?: string;
