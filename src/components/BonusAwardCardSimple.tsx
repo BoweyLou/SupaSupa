@@ -73,13 +73,15 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
             : `linear-gradient(180deg, ${customColors.backgroundColor} 0%, ${customColors.backgroundColor} 30%, ${cardBgColor} 100%)`,
         }}
       >
-        <div className="brutalist-card__header">
+        <div className="brutalist-card__header" style={{ position: 'relative' }}>
           <div 
             className="brutalist-card__icon" 
             style={{ 
+              position: 'absolute',
               left: '50%', 
               transform: 'translateX(-50%)', 
-              top: '-5px',
+              top: '10px',
+              zIndex: 1
             }}
           >
             <IconComponent color={iconColor} />
@@ -87,7 +89,7 @@ const BonusAwardCardSimple: React.FC<BonusAwardCardSimpleProps> = ({ bonusAward,
           <h3 
             style={{ 
               marginLeft: '0', 
-              marginTop: '40px', 
+              marginTop: '30px', 
               textAlign: 'center',
               width: '100%',
               padding: '0 0.5rem',
