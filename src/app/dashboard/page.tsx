@@ -8,19 +8,14 @@ import PointsDisplay from '@/components/PointsDisplay';
 import { fetchParentTasks, fetchChildTasks as repoFetchChildTasks, updateTaskStatus, fetchTask } from '@/repositories/tasksRepository';
 import AddAward from '@/components/AddAward';
 import DashboardSection from '@/components/DashboardSection';
-import { Compass, Award as AwardIcon } from 'lucide-react';
 import AddBonusAward from '@/components/AddBonusAward';
 import BonusAwardCard from '@/components/BonusAwardCard';
-import BonusAwardCardSimple from '@/components/BonusAwardCardSimple';
 import ChildAccountCard from '@/components/ChildAccountCard';
 import ChildSelectorModal from '@/components/ChildSelectorModal';
-import CompletedTaskCard from '@/components/CompletedTaskCard';
 import DashboardTabs from '@/components/DashboardTabs';
 import DashboardNav from '@/components/DashboardNav';
 import AwardCard, { Award } from '@/components/AwardCard';
 import { Session } from '@supabase/supabase-js';
-import Awards from '@/pages/child/Awards';
-import ClaimedAwards from '@/components/ClaimedAwards';
 import DashboardAccordion from '@/components/DashboardAccordion';
 import ViewToggle, { ViewMode } from '@/components/ViewToggle';
 import CardGrid from '@/components/CardGrid';
@@ -180,16 +175,6 @@ export default function DashboardPage() {
       return status as Quest['status'];
     }, []);
 
-    // Helper function to check if a given date string represents a date that is today
-    const isToday = (dateString: string | undefined) => {
-      if (!dateString) return false;
-      const date = new Date(dateString);
-      const now = new Date();
-      return date.getFullYear() === now.getFullYear() &&
-             date.getMonth() === now.getMonth() &&
-             date.getDate() === now.getDate();
-    };
-
     console.log('DashboardPage rendering', { user, dbUser, tasks, childTasks });
 
     useEffect(() => {
@@ -278,7 +263,7 @@ export default function DashboardPage() {
     }, [user]);
 
     // Function to fetch and update children data
-    const fetchChildren = async (familyId: string) => {
+    const fetchChildren = useCallback(async (familyId: string) => {
         try {
             console.log('Starting fetchChildren for family:', familyId);
             const { data: childrenData, error: childrenError } = await supabase
@@ -300,7 +285,7 @@ export default function DashboardPage() {
             console.error('Error in fetchChildren:', err);
             setError('An unexpected error occurred while fetching children');
         }
-    };
+    }, []);
 
     // Set up real-time subscription for child updates
     useEffect(() => {
@@ -369,7 +354,7 @@ export default function DashboardPage() {
         return () => {
             pointsSubscription.unsubscribe();
         };
-    }, [familyId]);
+    }, [familyId, updateChildPoints]);
 
     // Function to fetch parent's tasks (quests)
     const fetchTasks = useCallback(async () => {
@@ -454,8 +439,8 @@ export default function DashboardPage() {
         }
     };
 
-    // Update handleAddChild to include proper error handling
-    const handleAddChild = async (e: React.FormEvent<HTMLFormElement>) => {
+    // Update handleAddChild to use useCallback
+    const handleAddChild = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!childName || !familyId) {
             console.log('Missing required data:', { childName, familyId });
@@ -516,18 +501,18 @@ export default function DashboardPage() {
         } finally {
             setChildLoading(false);
         }
-    };
+    }, [childName, familyId, children, fetchChildren]);
 
-    const handleEditClick = (child: Child) => {
+    const handleEditClick = useCallback((child: Child) => {
         setEditingChildId(child.id);
         setEditingChildName(child.name);
-    };
+    }, []);
 
-    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleEditChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setEditingChildName(e.target.value);
-    };
+    }, []);
 
-    const handleSaveEdit = async (childId: string) => {
+    const handleSaveEdit = useCallback(async (childId: string) => {
         if (!familyId) {
             setError('Family ID is missing.');
             return;
@@ -549,14 +534,14 @@ export default function DashboardPage() {
             console.error('Error in handleSaveEdit:', err);
             setError('Failed to update child account.');
         }
-    };
+    }, [familyId, editingChildName, fetchChildren]);
 
-    const handleCancelEdit = () => {
+    const handleCancelEdit = useCallback(() => {
         setEditingChildId(null);
         setEditingChildName('');
-    };
+    }, []);
 
-    const handleDeleteChild = async (childId: string) => {
+    const handleDeleteChild = useCallback(async (childId: string) => {
         if (!familyId) {
             setError('Family ID is missing.');
             return;
@@ -576,7 +561,7 @@ export default function DashboardPage() {
             console.error('Error in handleDeleteChild:', err);
             setError('Failed to delete child account.');
         }
-    };
+    }, [familyId, fetchChildren]);
 
     // Updated handleTaskCompletion to use repository functions
     const handleTaskCompletion = useCallback(async (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => {
@@ -807,60 +792,60 @@ export default function DashboardPage() {
     });
 
     // NEW: Function to fetch bonus awards
-    const fetchBonusAwards = async () => {
-      try {
-        // First, fetch just the bonus awards
-        const { data: awards, error: awardsError } = await supabase
-          .from('bonus_awards')
-          .select('*')
-          .order('created_at', { ascending: false });
+    const fetchBonusAwards = useCallback(async () => {
+        try {
+            // First, fetch just the bonus awards
+            const { data: awards, error: awardsError } = await supabase
+                .from('bonus_awards')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        if (awardsError) {
-          console.error('Error fetching bonus awards:', awardsError);
-          setError('Failed to fetch bonus awards');
-          return;
-        }
-
-        // Ensure we have an array even if data is null
-        const safeAwards = awards || [];
-
-        // Map the awards to include default values for instances
-        const processedAwards = safeAwards.map(award => ({
-          ...award,
-          status: 'available' as const,
-          instances: []
-        }));
-
-        // Try to fetch instances if there are any awards
-        if (safeAwards.length > 0) {
-          try {
-            const { data: instances } = await supabase
-              .from('bonus_award_instances')
-              .select('*')
-              .order('awarded_at', { ascending: false });
-
-            // If we have instances, add them to the corresponding awards
-            if (instances && instances.length > 0) {
-              instances.forEach(instance => {
-                const award = processedAwards.find(a => a.id === instance.bonus_award_id);
-                if (award) {
-                  if (!award.instances) award.instances = [];
-                  award.instances.push(instance);
-                }
-              });
+            if (awardsError) {
+                console.error('Error fetching bonus awards:', awardsError);
+                setError('Failed to fetch bonus awards');
+                return;
             }
-          } catch (instanceError) {
-            console.error('Error fetching bonus award instances:', instanceError);
-            // Don't fail completely if instances fetch fails
-          }
-        }
 
-        setBonusAwards(processedAwards);
-      } catch (err: unknown) {
-        console.error('Unexpected error fetching bonus awards:', err);
-        setError('An unexpected error occurred while fetching bonus awards');
-      }
-    };
+            // Ensure we have an array even if data is null
+            const safeAwards = awards || [];
+
+            // Map the awards to include default values for instances
+            const processedAwards = safeAwards.map(award => ({
+                ...award,
+                status: 'available' as const,
+                instances: []
+            }));
+
+            // Try to fetch instances if there are any awards
+            if (safeAwards.length > 0) {
+                try {
+                    const { data: instances } = await supabase
+                        .from('bonus_award_instances')
+                        .select('*')
+                        .order('awarded_at', { ascending: false });
+
+                    // If we have instances, add them to the corresponding awards
+                    if (instances && instances.length > 0) {
+                        instances.forEach(instance => {
+                            const award = processedAwards.find(a => a.id === instance.bonus_award_id);
+                            if (award) {
+                                if (!award.instances) award.instances = [];
+                                award.instances.push(instance);
+                            }
+                        });
+                    }
+                } catch (instanceError) {
+                    console.error('Error fetching bonus award instances:', instanceError);
+                    // Don't fail completely if instances fetch fails
+                }
+            }
+
+            setBonusAwards(processedAwards);
+        } catch (err: unknown) {
+            console.error('Unexpected error fetching bonus awards:', err);
+            setError('An unexpected error occurred while fetching bonus awards');
+        }
+    }, []);
 
     // NEW: useEffect to fetch bonus awards for parent
     useEffect(() => {
@@ -869,8 +854,70 @@ export default function DashboardPage() {
       }
     }, [dbUser]);
 
+    // Update awardBonusToChild with better error handling
+    const awardBonusToChild = useCallback(async (bonusAwardId: string, childId: string) => {
+        try {
+            const bonus = bonusAwards.find(b => b.id === bonusAwardId);
+            if (!bonus) {
+                setError('Bonus award not found');
+                return;
+            }
+
+            // Create a new record in bonus_award_instances
+            const { data: instanceData, error: awardError } = await supabase
+                .from('bonus_award_instances')
+                .insert([{ 
+                    bonus_award_id: bonusAwardId,
+                    assigned_child_id: childId,
+                    awarded_at: new Date().toISOString()
+                }])
+                .select()
+                .single();
+
+            if (awardError || !instanceData) {
+                console.error('Error creating bonus award instance:', awardError);
+                setError('Failed to award bonus');
+                return;
+            }
+
+            // Update child's points
+            const { data: childData, error: childError } = await supabase
+                .from('users')
+                .select('points')
+                .eq('id', childId)
+                .single();
+
+            if (childError || !childData) {
+                console.error('Error fetching child points:', childError);
+                setError('Failed to fetch child points');
+                return;
+            }
+
+            const newPoints = (childData.points || 0) + bonus.points;
+            const { error: updateChildError } = await supabase
+                .from('users')
+                .update({ points: newPoints })
+                .eq('id', childId);
+
+            if (updateChildError) {
+                console.error('Error updating child points:', updateChildError);
+                setError('Failed to update child points');
+                return;
+            }
+
+            // Update local state
+            updateChildPoints(childId, newPoints);
+            await fetchBonusAwards();
+            setIsChildSelectorOpen(false);
+            setSelectedBonusAwardId(null);
+        } catch (err: unknown) {
+            console.error('Error in awardBonusToChild:', err);
+            setError('Failed to process bonus award');
+        }
+    }, [bonusAwards, updateChildPoints, fetchBonusAwards]);
+
     // NEW: Handler to award a bonus award
-    const handleAwardBonus = async (bonusAwardId: string) => {
+    const handleAwardBonus = useCallback(async (bonusAwardId: string) => {
       try {
         const bonus = bonusAwards.find(b => b.id === bonusAwardId);
         if (!bonus) {
@@ -895,69 +942,7 @@ export default function DashboardPage() {
         console.error('Error in handleAwardBonus:', err);
         setError('Failed to process bonus award');
       }
-    };
-
-    // Update awardBonusToChild with better error handling
-    const awardBonusToChild = async (bonusAwardId: string, childId: string) => {
-      try {
-        const bonus = bonusAwards.find(b => b.id === bonusAwardId);
-        if (!bonus) {
-          setError('Bonus award not found');
-          return;
-        }
-
-        // Create a new record in bonus_award_instances
-        const { data: instanceData, error: awardError } = await supabase
-          .from('bonus_award_instances')
-          .insert([{ 
-            bonus_award_id: bonusAwardId,
-            assigned_child_id: childId,
-            awarded_at: new Date().toISOString()
-          }])
-          .select()
-          .single();
-
-        if (awardError || !instanceData) {
-          console.error('Error creating bonus award instance:', awardError);
-          setError('Failed to award bonus');
-          return;
-        }
-
-        // Update child's points
-        const { data: childData, error: childError } = await supabase
-          .from('users')
-          .select('points')
-          .eq('id', childId)
-          .single();
-
-        if (childError || !childData) {
-          console.error('Error fetching child points:', childError);
-          setError('Failed to fetch child points');
-          return;
-        }
-
-        const newPoints = (childData.points || 0) + bonus.points;
-        const { error: updateChildError } = await supabase
-          .from('users')
-          .update({ points: newPoints })
-          .eq('id', childId);
-
-        if (updateChildError) {
-          console.error('Error updating child points:', updateChildError);
-          setError('Failed to update child points');
-          return;
-        }
-
-        // Update local state
-        updateChildPoints(childId, newPoints);
-        await fetchBonusAwards();
-        setIsChildSelectorOpen(false);
-        setSelectedBonusAwardId(null);
-      } catch (err: unknown) {
-        console.error('Error in awardBonusToChild:', err);
-        setError('Failed to process bonus award');
-      }
-    };
+    }, [bonusAwards, children, awardBonusToChild]);
 
     // Add handler for child selection
     const handleChildSelect = async (childId: string) => {
@@ -967,7 +952,7 @@ export default function DashboardPage() {
     };
 
     // NEW: Handler to edit a bonus award
-    const handleEditBonus = async (bonusAwardId: string, updatedData: {
+    const handleEditBonus = useCallback(async (bonusAwardId: string, updatedData: {
       title: string;
       icon: string;
       color: string | null;
@@ -995,10 +980,10 @@ export default function DashboardPage() {
         console.error('Error in handleEditBonus:', err);
         setError('Failed to update bonus award');
       }
-    };
+    }, [fetchBonusAwards]);
 
     // NEW: Handler to delete a bonus award
-    const handleDeleteBonus = async (bonusAwardId: string) => {
+    const handleDeleteBonus = useCallback(async (bonusAwardId: string) => {
       if (!window.confirm('Are you sure you want to delete this bonus award?')) return;
       const { error } = await supabase
          .from('bonus_awards')
@@ -1009,7 +994,7 @@ export default function DashboardPage() {
          return;
       }
       fetchBonusAwards();
-    };
+    }, [fetchBonusAwards]);
 
     // NEW: Function to fetch awards from the 'awards' table
     const fetchAwards = useCallback(async () => {
@@ -1100,7 +1085,7 @@ export default function DashboardPage() {
     }, [dbUser, fetchAwards]);
 
     // Add handlers for editing and deleting awards
-    const handleEditAward = async (awardId: string, updatedAward: { 
+    const handleEditAward = useCallback(async (awardId: string, updatedAward: { 
       title: string, 
       description?: string, 
       points: number,
@@ -1138,9 +1123,9 @@ export default function DashboardPage() {
         console.error('Error updating award:', err);
         setError('Failed to update award');
       }
-    };
+    }, [fetchAwards]);
 
-    const handleDeleteAward = async (awardId: string) => {
+    const handleDeleteAward = useCallback(async (awardId: string) => {
       if (!window.confirm('Are you sure you want to delete this award?')) return;
       
       try {
@@ -1155,10 +1140,10 @@ export default function DashboardPage() {
         console.error('Error deleting award:', err);
         setError('Failed to delete award');
       }
-    };
+    }, [fetchAwards]);
 
     // New function to revive a fully redeemed award
-    const handleReviveAward = async (awardId: string) => {
+    const handleReviveAward = useCallback(async (awardId: string) => {
       if (!window.confirm('Do you want to revive this award? This will:\n\n- Reset the redemption count to 0\n- Allow it to be claimed again\n- Remove the "Awarded" status')) return;
       
       try {
@@ -1184,7 +1169,7 @@ export default function DashboardPage() {
         console.error('Error reviving award:', err);
         setError('Failed to revive award');
       }
-    };
+    }, [fetchAwards]);
 
     // NEW: Load view mode preference from localStorage on initial render
     useEffect(() => {
