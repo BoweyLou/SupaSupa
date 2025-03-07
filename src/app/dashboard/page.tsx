@@ -200,8 +200,9 @@ export default function DashboardPage() {
     // For a parent, 'parent' will refer to the parent's dashboard; other tabs will have child ids.
     const [activeTab, setActiveTab] = useState<string>('parent');
 
-    // NEW: State for view mode (tabs or accordion)
+    // NEW: State for view mode (tabs or accordion) - default to accordion for better reliability
     const [viewMode, setViewMode] = useState<ViewMode>('accordion');
+    console.log('Current view mode:', viewMode);
 
     // NEW: State for bonus Awards
     const [bonusAwards, setBonusAwards] = useState<BonusAward[]>([]);
@@ -746,18 +747,16 @@ export default function DashboardPage() {
 
     // Update activeTab initialization for parent users
     useEffect(() => {
-      if (dbUser && !activeTab) {
+      if (dbUser) {
          if (dbUser.role === 'parent') {
-            if (children && children.length > 0) {
-                setActiveTab(children[0].id);
-            } else {
-                setActiveTab('parent');
-            }
+            // Always make sure parent tab is selected for parents to ensure tasks display properly
+            // This ensures we see the parent view by default
+            setActiveTab('parent');
          } else {
-            setActiveTab(dbUser.role === 'parent' ? 'parent' : dbUser.id);
+            setActiveTab(dbUser.id);
          }
       }
-    }, [dbUser, activeTab, children]);
+    }, [dbUser]);
 
     // Update tabs computation for parent users to place the parent's tab last
     const tabs = useMemo(() => {
@@ -783,6 +782,14 @@ export default function DashboardPage() {
     }
 
     // Compute active and completed tasks for parent's task view
+    console.log('Filtering tasks, total count:', tasks.length);
+    console.log('All tasks before filtering:', tasks.map(t => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      assignedChildId: t.assignedChildId
+    })));
+    
     const activeTasks = tasks.filter((task: Quest) => {
       // Show all tasks that are assigned, pending, in-progress, or failed
       // This ensures reset tasks show up properly for parents
@@ -793,6 +800,7 @@ export default function DashboardPage() {
         taskId: task.id,
         title: task.title,
         status: task.status,
+        assignedChildId: task.assignedChildId,
         next_occurrence: task.next_occurrence,
         isActive,
         willShow: isActive
@@ -800,6 +808,8 @@ export default function DashboardPage() {
       
       return isActive;
     });
+    
+    console.log('Active tasks after filtering:', activeTasks.length, activeTasks.map(t => t.title));
     
     const completedTasks = tasks.filter((task: Quest) => {
       // Show only tasks that are fully completed
@@ -826,9 +836,19 @@ export default function DashboardPage() {
         id: t.id,
         title: t.title,
         status: t.status,
+        assignedChildId: t.assignedChildId,
         next_occurrence: t.next_occurrence
       }))
     });
+    
+    // Troubleshooting - detect any missing properties that might cause rendering issues
+    if (activeTasks.length > 0) {
+      activeTasks.forEach(task => {
+        if (!task.id || !task.title || !task.description || task.points === undefined) {
+          console.error('Invalid task found:', task);
+        }
+      });
+    }
 
     // NEW: Function to fetch bonus awards
     const fetchBonusAwards = useCallback(async () => {
@@ -1324,27 +1344,53 @@ export default function DashboardPage() {
               </div>
             )}
             {activeTasks.length > 0 ? (
-              <CardGrid>
-                {activeTasks.map((task: Quest) => {
-                  console.log('Rendering active task:', {
-                    taskId: task.id,
-                    title: task.title,
-                    status: task.status,
-                    next_occurrence: task.next_occurrence
-                  });
-                  return (
-                    <QuestCard 
-                      key={task.id} 
-                      quest={task} 
-                      userRole="parent"
-                      onComplete={handleTaskCompletion}
-                      childNameMapping={childNameMapping}
-                    />
-                  );
-                })}
-              </CardGrid>
+              <>
+                <div className="mb-4">
+                  <pre className="p-3 bg-yellow-100 text-xs overflow-auto">
+                    Debug: {activeTasks.length} active tasks to render:<br/>
+                    {JSON.stringify(activeTasks.map(t => ({
+                      id: t.id, 
+                      title: t.title, 
+                      status: t.status, 
+                      childId: t.assignedChildId
+                    })), null, 2)}
+                  </pre>
+                </div>
+                
+                <CardGrid>
+                  {activeTasks.map((task: Quest) => {
+                    console.log('Rendering active task:', {
+                      taskId: task.id,
+                      title: task.title,
+                      status: task.status,
+                      assignedChildId: task.assignedChildId,
+                      next_occurrence: task.next_occurrence
+                    });
+                    return (
+                      <QuestCard 
+                        key={task.id} 
+                        quest={task} 
+                        userRole="parent"
+                        onComplete={handleTaskCompletion}
+                        childNameMapping={childNameMapping}
+                      />
+                    );
+                  })}
+                </CardGrid>
+              </>
             ) : (
-              <p className="mb-4">No tasks found.</p>
+              <div className="mb-4">
+                <p className="mb-2">No active tasks found.</p>
+                <pre className="p-3 bg-gray-100 text-xs overflow-auto">
+                  Debug: All tasks: {tasks.length}<br/>
+                  {JSON.stringify(tasks.map(t => ({
+                    id: t.id, 
+                    title: t.title, 
+                    status: t.status, 
+                    childId: t.assignedChildId
+                  })), null, 2)}
+                </pre>
+              </div>
             )}
           </DashboardSection>
 
@@ -1399,9 +1445,41 @@ export default function DashboardPage() {
             </DashboardSection>
           )}
 
-          {/* NEW: Dashboard Settings Section with Timezone Selection */}
+          {/* NEW: Dashboard Settings Section with Timezone Selection and Manual Reset */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Dashboard Settings</h2>
+            
+            {/* Reset Tasks Button */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-lg font-medium mb-2">Task Management</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                If recurring tasks don't reset automatically, you can reset them manually here.
+              </p>
+              <button
+                onClick={async () => {
+                  try {
+                    // Mark any completed tasks as assigned again for all children
+                    for (const task of tasks) {
+                      if (task.status === 'completed' && (task.frequency === 'daily' || task.frequency === 'weekly')) {
+                        await updateTaskStatus(task.id, 'assigned');
+                      }
+                    }
+                    // Refresh the tasks list
+                    await fetchTasks();
+                    if (children && children.length > 0) {
+                      await fetchChildTasks();
+                    }
+                    setSuccessMessage('Successfully reset recurring tasks to "assigned" status!');
+                  } catch (error) {
+                    console.error('Error resetting tasks:', error);
+                    setError('Failed to reset tasks. Please try again.');
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Manually Reset Recurring Tasks
+              </button>
+            </div>
             
             {/* View Mode Toggle */}
             <div className="mb-6">
@@ -1528,17 +1606,21 @@ export default function DashboardPage() {
                     />
                 )}
 
-                {/* NEW: Conditional rendering based on view mode */}
-                {viewMode === 'accordion' ? (
-                  <DashboardAccordion sections={accordionSections} gridLayout={true} />
-                ) : (
-                  <div className="mt-4">
-                    <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-                    <div className="p-4 bg-white shadow">
-                      {activeTab === 'parent' ? (
-                        renderParentContent()
-                      ) : (
-                        selectedChild && (
+                {/* Simplified rendering that focuses on making tasks visible */}
+                {/* For now, just always render the parent content directly at the top level */}
+                <div className="mt-4">
+                  <h2 className="text-2xl font-semibold mb-4">Parent Dashboard</h2>
+                  {renderParentContent()}
+                  
+                  {/* Then render the original accordion/tabs UI below */}
+                  <h2 className="text-2xl font-semibold mt-8 mb-4">Child Views</h2>
+                  {viewMode === 'accordion' ? (
+                    <DashboardAccordion sections={accordionSections.filter(s => !s.isParent)} gridLayout={true} />
+                  ) : (
+                    <div className="mt-4">
+                      <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                      <div className="p-4 bg-white shadow">
+                        {activeTab !== 'parent' && selectedChild && (
                           <ChildDashboardSection 
                             key={selectedChild.id} 
                             child={selectedChild} 
@@ -1546,11 +1628,11 @@ export default function DashboardPage() {
                             onComplete={handleTaskCompletion} 
                             viewMode={viewMode}
                           />
-                        )
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>}
             </main>
 
             <ChildSelectorModal

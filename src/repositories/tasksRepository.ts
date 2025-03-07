@@ -63,13 +63,35 @@ export interface TaskUpdateData {
 }
 
 export async function fetchParentTasks(createdBy: string): Promise<TaskResponse[]> {
+  console.log('Fetching parent tasks for:', createdBy);
+  
+  // First try to get all tasks created by this parent where status is 'assigned'
+  const { data: assignedData, error: assignedError } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('created_by', createdBy)
+    .eq('status', 'assigned');
+  
+  if (assignedError) {
+    console.error('Error fetching assigned tasks:', assignedError);
+  } else {
+    console.log('Found assigned tasks:', assignedData?.length || 0);
+  }
+  
+  // Then get all tasks with any status
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
     .eq('created_by', createdBy);
+  
   if (error) {
+    console.error('Error fetching parent tasks:', error);
     throw error;
   }
+  
+  console.log('Parent tasks fetched successfully:', data?.length || 0, 'tasks found');
+  console.log('Task statuses:', data?.map(t => ({id: t.id, title: t.title, status: t.status})));
+  
   if (!data) return [];
   return data as TaskResponse[];
 }

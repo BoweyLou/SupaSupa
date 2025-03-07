@@ -289,26 +289,44 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
     }
   };
 
-  return (
-    <div className="brutalist-card brutalist-card--themed" style={cardStyle} ref={cardRef}>
-      {/* Confetti component */}
-      {showConfetti && windowDimensions && (
-        <ReactConfetti
-          width={windowDimensions.width}
-          height={windowDimensions.height}
-          recycle={false}
-          numberOfPieces={200}
-          gravity={0.3}
-          colors={['#FFD700', '#FFA500', '#FF4500', '#FF6347', '#8A2BE2', '#4169E1', '#00BFFF']}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            zIndex: 1000,
-            pointerEvents: 'none'
-          }}
-        />
-      )}
+  console.log('QuestCard rendering:', {
+    id: updatedQuest.id,
+    title: updatedQuest.title,
+    status: updatedQuest.status,
+    userRole,
+    assignedChildId: updatedQuest.assignedChildId,
+    hideActions
+  });
+  
+  try {
+    return (
+      <div className="brutalist-card brutalist-card--themed" style={cardStyle} ref={cardRef}>
+        {/* Debug info */}
+        <div 
+          className="absolute top-0 right-0 z-50 text-xs bg-blue-100 text-blue-800 p-1 rounded-bl"
+          style={{ fontSize: '9px' }}
+        >
+          id: {updatedQuest.id.slice(0,6)}... | status: {updatedQuest.status}
+        </div>
+        
+        {/* Confetti component */}
+        {showConfetti && windowDimensions && (
+          <ReactConfetti
+            width={windowDimensions.width}
+            height={windowDimensions.height}
+            recycle={false}
+            numberOfPieces={200}
+            gravity={0.3}
+            colors={['#FFD700', '#FFA500', '#FF4500', '#FF6347', '#8A2BE2', '#4169E1', '#00BFFF']}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              zIndex: 1000,
+              pointerEvents: 'none'
+            }}
+          />
+        )}
       
       <div 
         className="brutalist-card__header-wrapper" 
@@ -636,6 +654,22 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       )}
     </div>
   );
+  } catch (error) {
+    console.error('Error rendering QuestCard:', error);
+    return (
+      <div className="brutalist-card p-4 bg-red-100 text-red-800">
+        <h3>Error rendering quest card</h3>
+        <pre className="text-xs mt-2 overflow-auto">
+          {JSON.stringify({
+            id: updatedQuest.id,
+            title: updatedQuest.title,
+            status: updatedQuest.status,
+            error: String(error)
+          }, null, 2)}
+        </pre>
+      </div>
+    );
+  }
 };
 
 export default QuestCard; 
