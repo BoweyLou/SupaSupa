@@ -229,6 +229,9 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
 
   // Get status display
   const getStatusDisplay = () => {
+    // Only show status indicators for parent view to avoid confusion
+    if (userRole !== 'parent') return null;
+    
     switch (updatedQuest.status) {
       case 'pending':
         return <div className="brutalist-card__status brutalist-card__status--pending">PENDING APPROVAL</div>;
@@ -236,6 +239,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
         return <div className="brutalist-card__status brutalist-card__status--awarded">COMPLETED</div>;
       case 'failed':
         return <div className="brutalist-card__status brutalist-card__status--unavailable">FAILED</div>;
+      case 'assigned':
+        return <div className="brutalist-card__status brutalist-card__status--available">ASSIGNED</div>;
       default:
         return null;
     }
@@ -420,13 +425,22 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       )}
 
       <div className="brutalist-card__actions">
-        {!hideActions && userRole === 'child' && updatedQuest.status === 'assigned' && (
-          <button
-            className="brutalist-card__button brutalist-card__button--claim"
-            onClick={handleComplete}
-          >
-            I DID IT
-          </button>
+        {!hideActions && userRole === 'child' && (
+          <>
+            {updatedQuest.status === 'assigned' && (
+              <button
+                className="brutalist-card__button brutalist-card__button--claim"
+                onClick={handleComplete}
+              >
+                I DID IT
+              </button>
+            )}
+            {updatedQuest.status === 'completed' && (
+              <div className="text-green-600 text-center font-medium">
+                COMPLETED
+              </div>
+            )}
+          </>
         )}
 
         {!hideActions && userRole === 'parent' && (

@@ -96,6 +96,25 @@ function ChildDashboardSection({ child, tasks, onComplete, viewMode }: {
   viewMode: ViewMode;
 }) {
   const [expanded, setExpanded] = useState(true);
+  
+  // Filter active tasks (assigned/pending) separately from completed tasks
+  const activeTasks = tasks.filter(task => 
+    task.status === 'assigned' || 
+    task.status === 'pending' || 
+    task.status === 'in-progress'
+  );
+  
+  const completedTasks = tasks.filter(task => task.status === 'completed');
+  
+  console.log('Child dashboard showing tasks:', {
+    childId: child.id,
+    childName: child.name,
+    totalTasks: tasks.length,
+    active: activeTasks.length,
+    completed: completedTasks.length,
+    taskDetails: tasks.map(t => ({id: t.id, title: t.title, status: t.status}))
+  });
+  
   return (
     <div>
       <h3 className="text-lg font-bold mb-2">Dashboard for {child.name}</h3>
@@ -104,20 +123,45 @@ function ChildDashboardSection({ child, tasks, onComplete, viewMode }: {
           {expanded ? 'Hide Tasks' : `Show Tasks (${tasks.length})`}
         </button>
       </div>
-      {expanded && tasks.length > 0 && (
-        <CardGrid className="mt-2" viewMode={viewMode}>
-          {tasks.map((task: Quest) => (
-            <QuestCard 
-              key={task.id}
-              quest={task} 
-              userRole="child" 
-              onComplete={onComplete} 
-            />
-          ))}
-        </CardGrid>
-      )}
-      {expanded && tasks.length === 0 && (
-        <p className="mt-2 text-gray-500">No tasks available</p>
+      
+      {expanded && (
+        <>
+          <div className="mb-6">
+            <h4 className="text-md font-medium mb-2">Active Quests</h4>
+            {activeTasks.length > 0 ? (
+              <CardGrid className="mt-2" viewMode={viewMode}>
+                {activeTasks.map((task: Quest) => (
+                  <QuestCard 
+                    key={task.id}
+                    quest={task} 
+                    userRole="child" 
+                    onComplete={onComplete} 
+                  />
+                ))}
+              </CardGrid>
+            ) : (
+              <p className="mt-2 text-gray-500">No active quests available</p>
+            )}
+          </div>
+          
+          <div>
+            <h4 className="text-md font-medium mb-2">Completed Quests</h4>
+            {completedTasks.length > 0 ? (
+              <CardGrid className="mt-2" viewMode={viewMode}>
+                {completedTasks.map((task: Quest) => (
+                  <QuestCard 
+                    key={task.id}
+                    quest={task} 
+                    userRole="child" 
+                    onComplete={onComplete} 
+                  />
+                ))}
+              </CardGrid>
+            ) : (
+              <p className="mt-2 text-gray-500">No completed quests</p>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
@@ -172,6 +216,10 @@ export default function DashboardPage() {
     const mapStatus = useCallback((status: string): string => {
       if (status === 'pending approval') return 'pending';
       if (status === 'rejected') return 'failed';
+      // Make sure 'assigned' status is properly passed through
+      if (status === 'assigned') return 'assigned';
+      if (status === 'completed') return 'completed';
+      if (status === 'in-progress') return 'in-progress';
       return status as Quest['status'];
     }, []);
 
@@ -736,33 +784,26 @@ export default function DashboardPage() {
 
     // Compute active and completed tasks for parent's task view
     const activeTasks = tasks.filter((task: Quest) => {
-      // Show tasks that are not completed
-      // OR tasks that are completed but haven't been reset yet (next_occurrence is in the future)
-      const isNotCompleted = task.status !== 'completed';
-      const isCompletedButNotReset = task.status === 'completed' && 
-        task.next_occurrence && 
-        new Date(task.next_occurrence) > new Date();
+      // Show all tasks that are assigned, pending, in-progress, or failed
+      // This ensures reset tasks show up properly for parents
+      const isActive = task.status === 'assigned' || task.status === 'pending' || 
+                       task.status === 'in-progress' || task.status === 'failed';
       
       console.log('Task filtering:', {
         taskId: task.id,
         title: task.title,
         status: task.status,
         next_occurrence: task.next_occurrence,
-        isNotCompleted,
-        isCompletedButNotReset,
-        willShow: isNotCompleted || isCompletedButNotReset
+        isActive,
+        willShow: isActive
       });
       
-      return isNotCompleted || isCompletedButNotReset;
+      return isActive;
     });
     
     const completedTasks = tasks.filter((task: Quest) => {
-      // Show tasks that are completed and either:
-      // 1. Have no next_occurrence (one-off tasks)
-      // 2. Have been reset (next_occurrence is in the past)
+      // Show only tasks that are fully completed
       const isCompleted = task.status === 'completed';
-      const isOneOff = !task.next_occurrence;
-      const isReset = task.next_occurrence && new Date(task.next_occurrence) <= new Date();
       
       console.log('Completed task filtering:', {
         taskId: task.id,
@@ -770,12 +811,10 @@ export default function DashboardPage() {
         status: task.status,
         next_occurrence: task.next_occurrence,
         isCompleted,
-        isOneOff,
-        isReset,
-        willShow: isCompleted && (isOneOff || isReset)
+        willShow: isCompleted
       });
       
-      return isCompleted && (isOneOff || isReset);
+      return isCompleted;
     });
 
     // Add debug logging for task counts

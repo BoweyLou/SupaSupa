@@ -124,6 +124,11 @@
   color: #4b5563;
 }
 
+.brutalist-card__status--available {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
 /* Buttons */
 .brutalist-card__button {
   display: block;
