@@ -1453,7 +1453,7 @@ export default function DashboardPage() {
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="text-lg font-medium mb-2">Task Management</h3>
               <p className="text-sm text-gray-600 mb-4">
-                If recurring tasks don't reset automatically, you can reset them manually here.
+                If recurring tasks don&apos;t reset automatically, you can reset them manually here.
               </p>
               <button
                 onClick={async () => {
@@ -1632,7 +1632,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
-                </div>}
+                </div>
             </main>
 
             <ChildSelectorModal
