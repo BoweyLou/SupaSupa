@@ -106,15 +106,6 @@ function ChildDashboardSection({ child, tasks, onComplete, viewMode }: {
   
   const completedTasks = tasks.filter(task => task.status === 'completed');
   
-  console.log('Child dashboard showing tasks:', {
-    childId: child.id,
-    childName: child.name,
-    totalTasks: tasks.length,
-    active: activeTasks.length,
-    completed: completedTasks.length,
-    taskDetails: tasks.map(t => ({id: t.id, title: t.title, status: t.status}))
-  });
-  
   return (
     <div>
       <h3 className="text-lg font-bold mb-2">Dashboard for {child.name}</h3>
@@ -202,7 +193,6 @@ export default function DashboardPage() {
 
     // NEW: State for view mode (tabs or accordion) - default to accordion for better reliability
     const [viewMode, setViewMode] = useState<ViewMode>('accordion');
-    console.log('Current view mode:', viewMode);
 
     // NEW: State for bonus Awards
     const [bonusAwards, setBonusAwards] = useState<BonusAward[]>([]);
@@ -223,8 +213,6 @@ export default function DashboardPage() {
       if (status === 'in-progress') return 'in-progress';
       return status as Quest['status'];
     }, []);
-
-    console.log('DashboardPage rendering', { user, dbUser, tasks, childTasks });
 
     useEffect(() => {
         const checkUser = async () => {
@@ -263,11 +251,9 @@ export default function DashboardPage() {
 
     // Fetch the current user's record from our 'users' table using their name or id
     useEffect(() => {
-        console.log('User metadata in DB fetch effect:', user?.user_metadata);
         if (user && (user.user_metadata?.name || user.id)) {
             const filterField = user.user_metadata?.name ? 'name' : 'id';
             const identifier = user.user_metadata?.name ? user.user_metadata.name : user.id;
-            console.log(`Fetching DB user using ${filterField}:`, identifier);
             const fetchDBUser = async () => {
                 const { data, error } = await supabase
                     .from('users')
@@ -277,7 +263,6 @@ export default function DashboardPage() {
                 if (error) {
                     // If error indicates no rows, create a new DB user record
                     if (error.code === 'PGRST116') {
-                        console.log('No DB user record found, creating one now...');
                         const newUserId = user.user_metadata?.sub || user.id;
                         const { data: newUser, error: insertError } = await supabase
                             .from('users')
@@ -292,16 +277,14 @@ export default function DashboardPage() {
                             ])
                             .single();
                         if (insertError) {
-                            console.error('Error creating new DB user:', insertError);
+                            setError('Error creating new user account');
                         } else {
-                            console.log('Created new DB user:', newUser);
                             setDBUser(newUser);
                         }
                     } else {
-                        console.error('Error fetching db user:', error);
+                        setError('Error fetching user account');
                     }
                 } else if (data) {
-                    console.log('Fetched DB user:', data);
                     setDBUser(data);
                 }
             };
@@ -314,7 +297,6 @@ export default function DashboardPage() {
     // Function to fetch and update children data
     const fetchChildren = useCallback(async (familyId: string) => {
         try {
-            console.log('Starting fetchChildren for family:', familyId);
             const { data: childrenData, error: childrenError } = await supabase
                 .from('users')
                 .select('*')
@@ -322,16 +304,12 @@ export default function DashboardPage() {
                 .eq('role', 'child');
             
             if (childrenError) {
-                console.error('Error fetching children:', childrenError);
                 setError('Failed to fetch children accounts');
                 return;
             }
             
-            console.log('Raw children data from database:', JSON.stringify(childrenData, null, 2));
             setChildren(childrenData as Child[]);
-            console.log('Updated children data:', childrenData);
         } catch (err: unknown) {
-            console.error('Error in fetchChildren:', err);
             setError('An unexpected error occurred while fetching children');
         }
     }, []);
@@ -352,7 +330,6 @@ export default function DashboardPage() {
                     filter: `family_id=eq.${familyId} AND role=eq.child`
                 },
                 async (payload) => {
-                    console.log('Received real-time update:', payload);
                     // Refresh children data when there's any change
                     await fetchChildren(familyId);
                 }
@@ -391,7 +368,6 @@ export default function DashboardPage() {
                     filter: `family_id=eq.${familyId} AND role=eq.child`
                 },
                 async (payload) => {
-                    console.log('Received points update:', payload);
                     const { new: updatedUser } = payload;
                     if (updatedUser && updatedUser.points !== undefined) {
                         updateChildPoints(updatedUser.id, updatedUser.points);
@@ -410,14 +386,11 @@ export default function DashboardPage() {
       if (!dbUser) return;
       try {
         const data = await fetchParentTasks(dbUser.id);
-        console.log('Raw tasks data fetched:', data);
         if (!Array.isArray(data)) {
-          console.error('Expected tasks data as an array, got:', data);
           setTasks([]);
           return;
         }
         const quests = (data as TaskResponse[]).map((task: TaskResponse) => {
-          console.log('Mapping task:', task);
           return {
             id: task.id,
             title: task.title,
@@ -433,7 +406,6 @@ export default function DashboardPage() {
             customColors: task.custom_colors
           };
         });
-        console.log('Mapped tasks (quests):', quests);
         setTasks(quests);
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -467,7 +439,6 @@ export default function DashboardPage() {
     // Fetch parent's tasks once the current dbUser is available
     useEffect(() => {
       if (dbUser) {
-        console.log('dbUser available, fetching tasks...');
         fetchTasks();
       }
     }, [dbUser, fetchTasks]);
@@ -492,7 +463,7 @@ export default function DashboardPage() {
     const handleAddChild = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!childName || !familyId) {
-            console.log('Missing required data:', { childName, familyId });
+            setError('Child name and family ID are required');
             return;
         }
         
@@ -507,45 +478,22 @@ export default function DashboardPage() {
                 points: 0
             };
             
-            console.log('Adding child with data:', JSON.stringify(childData, null, 2));
-
             const { data, error } = await supabase
                 .from('users')
                 .insert([childData])
                 .select();
 
             if (error) {
-                console.error('Error adding child:', error);
-                setError('Failed to add child account: ' + error.message);
+                setError('Failed to add child account');
                 return;
             }
 
-            console.log('Successfully added child, raw response:', JSON.stringify(data, null, 2));
-            
             if (data && data.length > 0) {
-                console.log('Setting new children state with added child');
                 setChildren([...children, data[0] as Child]);
                 setChildName('');
-                
-                // Double check the database state
-                console.log('Verifying database state after add...');
-                const { data: verifyData, error: verifyError } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('family_id', familyId)
-                    .eq('role', 'child');
-                
-                if (verifyError) {
-                    console.error('Error verifying children:', verifyError);
-                } else {
-                    console.log('Current children in database:', JSON.stringify(verifyData, null, 2));
-                }
-                
-                // Refresh children data to ensure we have the latest
                 await fetchChildren(familyId);
             }
         } catch (err: unknown) {
-            console.error('Error in handleAddChild:', err);
             setError('An unexpected error occurred while adding child');
         } finally {
             setChildLoading(false);
@@ -649,7 +597,6 @@ export default function DashboardPage() {
             .eq('id', task.assigned_child_id)
             .single();
           if (userError) {
-            console.error('Error fetching user points:', userError);
             return;
           }
 
@@ -661,7 +608,6 @@ export default function DashboardPage() {
             .update({ points: newPoints })
             .eq('id', task.assigned_child_id);
           if (pointsError) {
-            console.error('Error updating points:', pointsError);
             return;
           }
 
@@ -688,8 +634,6 @@ export default function DashboardPage() {
     useEffect(() => {
       if (dbUser) {
         const fetchFamilyAndChildren = async () => {
-          console.log('Fetching family for parent:', dbUser.id);
-          // Fetch family record using maybeSingle() to avoid throwing if not found
           const { data: familyData, error: familyError } = await supabase
             .from('families')
             .select('*')
@@ -701,9 +645,7 @@ export default function DashboardPage() {
             return;
           }
           if (familyData) {
-            console.log('Fetched family data:', familyData);
             setFamilyId(familyData.family_id);
-            console.log('Fetching children for family:', familyData.family_id);
             const { data: childrenData, error: childrenError } = await supabase
               .from('users')
               .select('*')
@@ -713,11 +655,9 @@ export default function DashboardPage() {
               console.error('Error fetching children:', childrenError);
               setError('Failed to fetch children data');
             } else {
-              console.log('Fetched children data:', childrenData);
               setChildren(childrenData);
             }
           } else {
-            console.log('No family found, creating new family...');
             const { data: newFamily, error: createFamilyError } = await supabase
               .from('families')
               .insert([{ owner_id: dbUser.id, name: `${dbUser.name}'s Family` }])
@@ -727,7 +667,6 @@ export default function DashboardPage() {
               console.error('Error creating family:', createFamilyError);
               setError('Failed to create family');
             } else {
-              console.log('Created new family:', newFamily);
               setFamilyId(newFamily.family_id);
               // Update parent's record with the new family_id
               const { error: updateUserError } = await supabase
@@ -750,7 +689,6 @@ export default function DashboardPage() {
       if (dbUser) {
          if (dbUser.role === 'parent') {
             // Always make sure parent tab is selected for parents to ensure tasks display properly
-            // This ensures we see the parent view by default
             setActiveTab('parent');
          } else {
             setActiveTab(dbUser.id);
@@ -782,73 +720,18 @@ export default function DashboardPage() {
     }
 
     // Compute active and completed tasks for parent's task view
-    console.log('Filtering tasks, total count:', tasks.length);
-    console.log('All tasks before filtering:', tasks.map(t => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      assignedChildId: t.assignedChildId
-    })));
-    
     const activeTasks = tasks.filter((task: Quest) => {
       // Show all tasks that are assigned, pending, in-progress, or failed
-      // This ensures reset tasks show up properly for parents
       const isActive = task.status === 'assigned' || task.status === 'pending' || 
                        task.status === 'in-progress' || task.status === 'failed';
-      
-      console.log('Task filtering:', {
-        taskId: task.id,
-        title: task.title,
-        status: task.status,
-        assignedChildId: task.assignedChildId,
-        next_occurrence: task.next_occurrence,
-        isActive,
-        willShow: isActive
-      });
-      
       return isActive;
     });
-    
-    console.log('Active tasks after filtering:', activeTasks.length, activeTasks.map(t => t.title));
     
     const completedTasks = tasks.filter((task: Quest) => {
       // Show only tasks that are fully completed
       const isCompleted = task.status === 'completed';
-      
-      console.log('Completed task filtering:', {
-        taskId: task.id,
-        title: task.title,
-        status: task.status,
-        next_occurrence: task.next_occurrence,
-        isCompleted,
-        willShow: isCompleted
-      });
-      
       return isCompleted;
     });
-
-    // Add debug logging for task counts
-    console.log('Task counts:', {
-      totalTasks: tasks.length,
-      activeTasks: activeTasks.length,
-      completedTasks: completedTasks.length,
-      tasks: tasks.map(t => ({
-        id: t.id,
-        title: t.title,
-        status: t.status,
-        assignedChildId: t.assignedChildId,
-        next_occurrence: t.next_occurrence
-      }))
-    });
-    
-    // Troubleshooting - detect any missing properties that might cause rendering issues
-    if (activeTasks.length > 0) {
-      activeTasks.forEach(task => {
-        if (!task.id || !task.title || !task.description || task.points === undefined) {
-          console.error('Invalid task found:', task);
-        }
-      });
-    }
 
     // NEW: Function to fetch bonus awards
     const fetchBonusAwards = useCallback(async () => {
@@ -894,7 +777,6 @@ export default function DashboardPage() {
                         });
                     }
                 } catch (instanceError) {
-                    console.error('Error fetching bonus award instances:', instanceError);
                     // Don't fail completely if instances fetch fails
                 }
             }
@@ -1030,7 +912,6 @@ export default function DashboardPage() {
            .eq('id', bonusAwardId);
         
         if (error) {
-           console.error('Error updating bonus award:', error);
            return;
         }
         
@@ -1049,7 +930,6 @@ export default function DashboardPage() {
          .delete()
          .eq('id', bonusAwardId);
       if (error) {
-         console.error('Error deleting bonus award:', error);
          return;
       }
       fetchBonusAwards();
@@ -1275,11 +1155,6 @@ export default function DashboardPage() {
 
     // NEW: Function to render parent content for accordion or tabs
     const renderParentContent = useCallback((): React.ReactElement => {
-      console.log('Rendering parent content with tasks:', {
-        activeTasksCount: activeTasks.length,
-        completedTasksCount: completedTasks.length
-      });
-
       // Create a mapping of child IDs to their names
       const childNameMapping = children.reduce((acc, child) => {
         acc[child.id] = child.name;
@@ -1344,53 +1219,19 @@ export default function DashboardPage() {
               </div>
             )}
             {activeTasks.length > 0 ? (
-              <>
-                <div className="mb-4">
-                  <pre className="p-3 bg-yellow-100 text-xs overflow-auto">
-                    Debug: {activeTasks.length} active tasks to render:<br/>
-                    {JSON.stringify(activeTasks.map(t => ({
-                      id: t.id, 
-                      title: t.title, 
-                      status: t.status, 
-                      childId: t.assignedChildId
-                    })), null, 2)}
-                  </pre>
-                </div>
-                
-                <CardGrid>
-                  {activeTasks.map((task: Quest) => {
-                    console.log('Rendering active task:', {
-                      taskId: task.id,
-                      title: task.title,
-                      status: task.status,
-                      assignedChildId: task.assignedChildId,
-                      next_occurrence: task.next_occurrence
-                    });
-                    return (
-                      <QuestCard 
-                        key={task.id} 
-                        quest={task} 
-                        userRole="parent"
-                        onComplete={handleTaskCompletion}
-                        childNameMapping={childNameMapping}
-                      />
-                    );
-                  })}
-                </CardGrid>
-              </>
+              <CardGrid>
+                {activeTasks.map((task: Quest) => (
+                  <QuestCard 
+                    key={task.id} 
+                    quest={task} 
+                    userRole="parent"
+                    onComplete={handleTaskCompletion}
+                    childNameMapping={childNameMapping}
+                  />
+                ))}
+              </CardGrid>
             ) : (
-              <div className="mb-4">
-                <p className="mb-2">No active tasks found.</p>
-                <pre className="p-3 bg-gray-100 text-xs overflow-auto">
-                  Debug: All tasks: {tasks.length}<br/>
-                  {JSON.stringify(tasks.map(t => ({
-                    id: t.id, 
-                    title: t.title, 
-                    status: t.status, 
-                    childId: t.assignedChildId
-                  })), null, 2)}
-                </pre>
-              </div>
+              <p className="mb-4">No active tasks found.</p>
             )}
           </DashboardSection>
 
@@ -1606,44 +1447,41 @@ export default function DashboardPage() {
                     />
                 )}
 
-                {/* Simplified rendering that focuses on making tasks visible */}
-                {/* For now, just always render the parent content directly at the top level */}
-                <div className="mt-4">
-                  <h2 className="text-2xl font-semibold mb-4">Parent Dashboard</h2>
-                  {renderParentContent()}
-                  
-                  {/* Then render the original accordion/tabs UI below */}
-                  <h2 className="text-2xl font-semibold mt-8 mb-4">Child Views</h2>
-                  {viewMode === 'accordion' ? (
-                    <DashboardAccordion sections={accordionSections.filter(s => !s.isParent)} gridLayout={true} />
-                  ) : (
-                    <div className="mt-4">
-                      <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-                      <div className="p-4 bg-white shadow">
-                        {activeTab !== 'parent' && selectedChild && (
-                          <ChildDashboardSection 
-                            key={selectedChild.id} 
-                            child={selectedChild} 
-                            tasks={childTasks[selectedChild.id] || []} 
-                            onComplete={handleTaskCompletion} 
-                            viewMode={viewMode}
-                          />
-                        )}
-                      </div>
+                {/* Navigation between parent and child views */}
+                {viewMode === 'accordion' ? (
+                    <DashboardAccordion sections={accordionSections} gridLayout={true} />
+                ) : (
+                    <div>
+                        <DashboardTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                        <div className="p-4 bg-white shadow rounded-lg">
+                            {activeTab === 'parent' ? (
+                                renderParentContent()
+                            ) : (
+                                selectedChild && (
+                                    <ChildDashboardSection 
+                                        key={selectedChild.id} 
+                                        child={selectedChild} 
+                                        tasks={childTasks[selectedChild.id] || []} 
+                                        onComplete={handleTaskCompletion} 
+                                        viewMode={viewMode}
+                                    />
+                                )
+                            )}
+                        </div>
                     </div>
-                  )}
-                </div>
-            </main>
+                )}
 
-            <ChildSelectorModal
-              isOpen={isChildSelectorOpen}
-              onClose={() => {
-                setIsChildSelectorOpen(false);
-                setSelectedBonusAwardId(null);
-              }}
-              onSelect={handleChildSelect}
-              childAccounts={children}
-            />
+                {/* Child Selector Modal */}
+                <ChildSelectorModal
+                    isOpen={isChildSelectorOpen}
+                    onClose={() => {
+                        setIsChildSelectorOpen(false);
+                        setSelectedBonusAwardId(null);
+                    }}
+                    onSelect={handleChildSelect}
+                    childAccounts={children}
+                />
+            </main>
         </div>
     );
 } 
