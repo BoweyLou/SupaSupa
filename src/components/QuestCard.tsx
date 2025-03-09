@@ -637,7 +637,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, userRole, onComplete, hide
       )}
     </div>
   );
-  } catch (error) {
+  } catch {
     return (
       <div className="brutalist-card p-4 bg-red-100 text-red-800">
         <h3>Error rendering quest card</h3>

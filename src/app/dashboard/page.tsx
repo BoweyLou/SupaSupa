@@ -309,7 +309,7 @@ export default function DashboardPage() {
             }
             
             setChildren(childrenData as Child[]);
-        } catch (err: unknown) {
+        } catch {
             setError('An unexpected error occurred while fetching children');
         }
     }, []);
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                     table: 'users',
                     filter: `family_id=eq.${familyId} AND role=eq.child`
                 },
-                async (payload) => {
+                async () => {
                     // Refresh children data when there's any change
                     await fetchChildren(familyId);
                 }
@@ -339,7 +339,7 @@ export default function DashboardPage() {
         return () => {
             subscription.unsubscribe();
         };
-    }, [familyId]);
+    }, [familyId, fetchChildren]);
 
     // Function to update a child's points in the local state
     const updateChildPoints = useCallback((childId: string, newPoints: number) => {
@@ -493,7 +493,7 @@ export default function DashboardPage() {
                 setChildName('');
                 await fetchChildren(familyId);
             }
-        } catch (err: unknown) {
+        } catch {
             setError('An unexpected error occurred while adding child');
         } finally {
             setChildLoading(false);
@@ -560,7 +560,60 @@ export default function DashboardPage() {
         }
     }, [familyId, fetchChildren]);
 
-    // Updated handleTaskCompletion to use repository functions
+    // NEW: Function to fetch bonus awards
+    const fetchBonusAwards = useCallback(async () => {
+        try {
+            // First, fetch just the bonus awards
+            const { data: awards, error: awardsError } = await supabase
+                .from('bonus_awards')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (awardsError) {
+                setError('Failed to fetch bonus awards');
+                return;
+            }
+
+            // Ensure we have an array even if data is null
+            const safeAwards = awards || [];
+
+            // Map the awards to include default values for instances
+            const processedAwards = safeAwards.map(award => ({
+                ...award,
+                status: 'available' as const,
+                instances: []
+            }));
+
+            // Try to fetch instances if there are any awards
+            if (safeAwards.length > 0) {
+                try {
+                    const { data: instances } = await supabase
+                        .from('bonus_award_instances')
+                        .select('*')
+                        .order('awarded_at', { ascending: false });
+
+                    // If we have instances, add them to the corresponding awards
+                    if (instances && instances.length > 0) {
+                        instances.forEach(instance => {
+                            const award = processedAwards.find(a => a.id === instance.bonus_award_id);
+                            if (award) {
+                                if (!award.instances) award.instances = [];
+                                award.instances.push(instance);
+                            }
+                        });
+                    }
+                } catch {
+                    // Don't fail completely if instances fetch fails
+                }
+            }
+
+            setBonusAwards(processedAwards);
+        } catch {
+            setError('An unexpected error occurred while fetching bonus awards');
+        }
+    }, []);
+
+    // Update handleTaskCompletion
     const handleTaskCompletion = useCallback(async (questId: string, action?: 'approve' | 'assigned' | 'edit' | 'delete') => {
       if (action === 'edit' || action === 'delete') {
         await fetchTasks();
@@ -618,10 +671,9 @@ export default function DashboardPage() {
         // Refresh tasks
         fetchTasks();
         if (children && children.length > 0) {
-          fetchChildTasks();
+          await fetchChildTasks();
         }
-      } catch (err: unknown) {
-        console.error('Error in handleTaskCompletion:', err);
+      } catch {
         setError('Failed to complete task');
       }
     }, [children, fetchTasks, fetchChildTasks, updateChildPoints]);
@@ -733,67 +785,16 @@ export default function DashboardPage() {
       return isCompleted;
     });
 
-    // NEW: Function to fetch bonus awards
-    const fetchBonusAwards = useCallback(async () => {
-        try {
-            // First, fetch just the bonus awards
-            const { data: awards, error: awardsError } = await supabase
-                .from('bonus_awards')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (awardsError) {
-                console.error('Error fetching bonus awards:', awardsError);
-                setError('Failed to fetch bonus awards');
-                return;
-            }
-
-            // Ensure we have an array even if data is null
-            const safeAwards = awards || [];
-
-            // Map the awards to include default values for instances
-            const processedAwards = safeAwards.map(award => ({
-                ...award,
-                status: 'available' as const,
-                instances: []
-            }));
-
-            // Try to fetch instances if there are any awards
-            if (safeAwards.length > 0) {
-                try {
-                    const { data: instances } = await supabase
-                        .from('bonus_award_instances')
-                        .select('*')
-                        .order('awarded_at', { ascending: false });
-
-                    // If we have instances, add them to the corresponding awards
-                    if (instances && instances.length > 0) {
-                        instances.forEach(instance => {
-                            const award = processedAwards.find(a => a.id === instance.bonus_award_id);
-                            if (award) {
-                                if (!award.instances) award.instances = [];
-                                award.instances.push(instance);
-                            }
-                        });
-                    }
-                } catch (instanceError) {
-                    // Don't fail completely if instances fetch fails
-                }
-            }
-
-            setBonusAwards(processedAwards);
-        } catch (err: unknown) {
-            console.error('Unexpected error fetching bonus awards:', err);
-            setError('An unexpected error occurred while fetching bonus awards');
-        }
-    }, []);
-
     // NEW: useEffect to fetch bonus awards for parent
     useEffect(() => {
       if (dbUser && dbUser.role === 'parent') {
-         fetchBonusAwards();
+         try {
+           fetchBonusAwards();
+         } catch {
+           setError('Failed to fetch bonus awards');
+         }
       }
-    }, [dbUser]);
+    }, [dbUser, fetchBonusAwards]);
 
     // Update awardBonusToChild with better error handling
     const awardBonusToChild = useCallback(async (bonusAwardId: string, childId: string) => {
@@ -816,7 +817,6 @@ export default function DashboardPage() {
                 .single();
 
             if (awardError || !instanceData) {
-                console.error('Error creating bonus award instance:', awardError);
                 setError('Failed to award bonus');
                 return;
             }
@@ -829,7 +829,6 @@ export default function DashboardPage() {
                 .single();
 
             if (childError || !childData) {
-                console.error('Error fetching child points:', childError);
                 setError('Failed to fetch child points');
                 return;
             }
@@ -841,7 +840,6 @@ export default function DashboardPage() {
                 .eq('id', childId);
 
             if (updateChildError) {
-                console.error('Error updating child points:', updateChildError);
                 setError('Failed to update child points');
                 return;
             }
@@ -851,13 +849,12 @@ export default function DashboardPage() {
             await fetchBonusAwards();
             setIsChildSelectorOpen(false);
             setSelectedBonusAwardId(null);
-        } catch (err: unknown) {
-            console.error('Error in awardBonusToChild:', err);
+        } catch {
             setError('Failed to process bonus award');
         }
     }, [bonusAwards, updateChildPoints, fetchBonusAwards]);
 
-    // NEW: Handler to award a bonus award
+    // Update handleAwardBonus dependencies
     const handleAwardBonus = useCallback(async (bonusAwardId: string) => {
       try {
         const bonus = bonusAwards.find(b => b.id === bonusAwardId);
@@ -879,8 +876,7 @@ export default function DashboardPage() {
           setSelectedBonusAwardId(bonusAwardId);
           setIsChildSelectorOpen(true);
         }
-      } catch (err: unknown) {
-        console.error('Error in handleAwardBonus:', err);
+      } catch {
         setError('Failed to process bonus award');
       }
     }, [bonusAwards, children, awardBonusToChild]);
@@ -912,12 +908,12 @@ export default function DashboardPage() {
            .eq('id', bonusAwardId);
         
         if (error) {
+           setError('Failed to update bonus award');
            return;
         }
         
         fetchBonusAwards();
-      } catch (err: unknown) {
-        console.error('Error in handleEditBonus:', err);
+      } catch {
         setError('Failed to update bonus award');
       }
     }, [fetchBonusAwards]);
@@ -925,14 +921,22 @@ export default function DashboardPage() {
     // NEW: Handler to delete a bonus award
     const handleDeleteBonus = useCallback(async (bonusAwardId: string) => {
       if (!window.confirm('Are you sure you want to delete this bonus award?')) return;
-      const { error } = await supabase
-         .from('bonus_awards')
-         .delete()
-         .eq('id', bonusAwardId);
-      if (error) {
-         return;
+      
+      try {
+        const { error } = await supabase
+           .from('bonus_awards')
+           .delete()
+           .eq('id', bonusAwardId);
+        
+        if (error) {
+           setError('Failed to delete bonus award');
+           return;
+        }
+        
+        fetchBonusAwards();
+      } catch {
+        setError('Failed to delete bonus award');
       }
-      fetchBonusAwards();
     }, [fetchBonusAwards]);
 
     // NEW: Function to fetch awards from the 'awards' table
@@ -1139,7 +1143,6 @@ export default function DashboardPage() {
           .eq('id', dbUser.id);
           
         if (error) {
-          console.error('Error updating timezone:', error);
           setError('Failed to update timezone setting');
           return;
         }
@@ -1147,8 +1150,7 @@ export default function DashboardPage() {
         // Update local state
         setDBUser(prev => prev ? { ...prev, timezone: newTimezone } : null);
         setSuccessMessage('Timezone updated successfully');
-      } catch (err) {
-        console.error('Error in handleTimezoneChange:', err);
+      } catch {
         setError('An unexpected error occurred while updating timezone');
       }
     }, [dbUser?.id]);
