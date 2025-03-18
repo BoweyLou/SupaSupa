@@ -1,0 +1,87 @@
+/* Dark mode styles for the dashboard */
+:root {
+  --bg-light: #f9fafb;
+  --bg-dark: #111827;
+  --text-light: #1f2937;
+  --text-dark: #f9fafb;
+  --panel-light: #ffffff;
+  --panel-dark: #1f2937;
+  --border-light: #e5e7eb;
+  --border-dark: #374151;
+}
+
+body {
+  background-color: var(--bg-light);
+  color: var(--text-light);
+}
+
+.dark body {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+/* Dashboard background */
+.dark .bg-gray-100 {
+  background-color: var(--bg-dark);
+}
+
+/* Card and panel backgrounds */
+.dark .bg-white {
+  background-color: var(--panel-dark);
+}
+
+/* Input fields */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+/* Various text colors */
+.dark .text-gray-500 {
+  color: #9ca3af;
+}
+
+.dark .text-gray-600 {
+  color: #d1d5db;
+}
+
+.dark .text-gray-700 {
+  color: #e5e7eb;
+}
+
+.dark .text-gray-800 {
+  color: #f3f4f6;
+}
+
+.dark .text-gray-900 {
+  color: #f9fafb;
+}
+
+/* Border colors */
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: var(--border-dark);
+}
+
+/* Dashboard sections and cards */
+.dark .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Dashboard buttons */
+.dark button:not([class*="bg-"]) {
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+.dark button:not([class*="bg-"]):hover {
+  background-color: #4b5563;
+}
+
+/* Preserve button colors with specific background classes */
+.dark button[class*="bg-"] {
+  /* These retain their original colors */
+}

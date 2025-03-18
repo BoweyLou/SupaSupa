@@ -19,6 +19,7 @@ export interface ThemeSettings {
   buttonClaimBg: string;
   buttonClaimShadow: string;
   iconSet: 'default' | 'minimal' | 'playful' | 'tech';
+  darkMode?: boolean; // New property for dark mode
 }
 
 // Default theme settings
@@ -36,7 +37,8 @@ export const defaultTheme: ThemeSettings = {
   buttonRejectShadow: '#800000',
   buttonClaimBg: '#4CAF50',
   buttonClaimShadow: '#2E7D32',
-  iconSet: 'default'
+  iconSet: 'default',
+  darkMode: false
 };
 
 // Define the context interface
@@ -46,6 +48,7 @@ interface ThemeContextType {
   saveTheme: (familyId: string) => Promise<void>;
   loadTheme: (familyId: string) => Promise<void>;
   applyThemeToRoot: () => void;
+  toggleDarkMode: () => void; // New function to toggle dark mode
 }
 
 // Create the context with default values
@@ -54,7 +57,8 @@ const ThemeContext = createContext<ThemeContextType>({
   updateTheme: () => {},
   saveTheme: async () => {},
   loadTheme: async () => {},
-  applyThemeToRoot: () => {}
+  applyThemeToRoot: () => {},
+  toggleDarkMode: () => {}
 });
 
 // Hook to use the theme context
@@ -72,6 +76,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  // Load dark mode preference from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedDarkMode = localStorage.getItem('darkMode');
+      if (savedDarkMode === 'true') {
+        setTheme(prevTheme => ({
+          ...prevTheme,
+          darkMode: true
+        }));
+      }
+    }
+  }, []);
 
   // Update theme function
   const updateTheme = (newTheme: Partial<ThemeSettings>) => {
@@ -101,11 +118,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Save theme to database
   const saveTheme = async (familyId: string) => {
     try {
+      // Include dark mode in the custom theme
+      const themeWithDarkMode = {
+        ...theme,
+        darkMode: theme.darkMode || false
+      };
+      
       const { error } = await supabase
         .from('theme_settings')
         .upsert({
           family_id: familyId,
-          custom_theme: theme,
+          custom_theme: themeWithDarkMode,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'family_id'
@@ -144,13 +167,43 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   };
 
+  // Toggle dark mode function
+  const toggleDarkMode = useCallback(() => {
+    const newDarkMode = !theme.darkMode;
+    setTheme(prevTheme => ({
+      ...prevTheme,
+      darkMode: newDarkMode
+    }));
+    
+    // Toggle the 'dark' class on the HTML element
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    // Save preference to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('darkMode', newDarkMode.toString());
+    }
+  }, [theme.darkMode]);
+
   // Apply theme when it changes
   useEffect(() => {
     applyThemeToRoot();
   }, [theme, applyThemeToRoot]);
 
+  // Apply dark mode on initial load and when it changes
+  useEffect(() => {
+    if (theme.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme.darkMode]);
+
   return (
-    <ThemeContext.Provider value={{ theme, updateTheme, saveTheme, loadTheme, applyThemeToRoot }}>
+    <ThemeContext.Provider value={{ theme, updateTheme, saveTheme, loadTheme, applyThemeToRoot, toggleDarkMode }}>
       {children}
     </ThemeContext.Provider>
   );

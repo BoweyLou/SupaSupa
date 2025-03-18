@@ -23,6 +23,7 @@ import Awards from '@/pages/child/Awards';
 import ClaimedAwards from '@/components/ClaimedAwards';
 import DashboardAccordion from '@/components/DashboardAccordion';
 import ViewToggle, { ViewMode } from '@/components/ViewToggle';
+import DarkModeToggle from '@/components/DarkModeToggle';
 import CardGrid from '@/components/CardGrid';
 
 // Define a Child interface for proper typing of child accounts
@@ -1430,10 +1431,21 @@ export default function DashboardPage() {
               )}
           </section>
 
-          {/* NEW: View Mode Toggle */}
+          {/* Dashboard Settings Section */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Dashboard Settings</h2>
-            <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+            
+            {/* View Mode Toggle */}
+            <div className="mb-4">
+              <h3 className="text-lg font-medium mb-2">Display Mode</h3>
+              <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+            </div>
+            
+            {/* Dark Mode Toggle */}
+            <div className="mb-4">
+              <h3 className="text-lg font-medium mb-2">Theme Mode</h3>
+              <DarkModeToggle className="w-full sm:w-auto" />
+            </div>
           </section>
         </>
       );

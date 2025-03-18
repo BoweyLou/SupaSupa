@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import "./globals.css";
 import "./brutalist.css";
 import "../styles/brutalist-card.css";
+import "../styles/dark-mode.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Add this script to prevent flashing */}
+        <script 
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                // Check if we have dark mode preference in localStorage
+                const darkModePreference = localStorage.getItem('darkMode');
+                if (darkModePreference === 'true') {
+                  document.documentElement.classList.add('dark');
+                }
+              })()
+            `
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
